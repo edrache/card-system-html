@@ -63,3 +63,25 @@ body {
   border-style: solid;
   opacity: 0.5;
 }
+
+/* Polish */
+.card {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.slot {
+  pointer-events: none;
+}
+
+/* Prevent text selection during drag */
+#board {
+  user-select: none;
+}
+
+/* Smooth slot highlight transition */
+.slot--active {
+  border-color: var(--slot-highlight-color, #f0c040);
+  border-style: solid;
+}
