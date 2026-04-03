@@ -41,6 +41,13 @@ const mid = calcTilt(30, 6)
 console.assert(mid > 0 && mid <= 6, 'positive dx gives positive tilt within range')
 console.log('Tilt tests passed ✓')
 
+import { getDistance } from '../js/interactions.js'
+
+// getDistance({x,y}, {x,y}) → Euclidean distance
+console.assert(getDistance({ x: 0, y: 0 }, { x: 3, y: 4 }) === 5, '3-4-5 triangle')
+console.assert(getDistance({ x: 0, y: 0 }, { x: 0, y: 0 }) === 0, 'same point = 0')
+console.log('Distance tests passed ✓')
+
 console.log('All tests passed ✓')
 </script>
 </body>
