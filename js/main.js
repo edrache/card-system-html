@@ -80,4 +80,6 @@ function init() {
   })
 }
 
-init()
+if (document.getElementById('board')) {
+  init()
+}

@@ -13,7 +13,7 @@ export function bumpZIndex() {
 }
 
 export function calcTilt(dx, tiltMax) {
-  const normalized = Math.max(-1, Math.min(1, dx / 80))
+  const normalized = Math.max(-1, Math.min(1, dx / ANIM.tiltVelocityScale))
   return normalized * tiltMax
 }
 
@@ -70,36 +70,36 @@ function snapCardToSlot(cardEl, slotEl) {
     onComplete() {
       slotEl.classList.add('slot--occupied')
       cardEl.dataset.slotId = slotEl.dataset.id
+      const draggable = Draggable.get(cardEl)
+      if (draggable) draggable.update()
     },
   })
 }
 
 export function initDrag(cardEl) {
-  cardEl.addEventListener('pointerdown', () => {
-    // If card was in a slot, free it
-    if (cardEl.dataset.slotId) {
-      const prevSlot = document.querySelector(`.slot[data-id="${cardEl.dataset.slotId}"]`)
-      if (prevSlot) prevSlot.classList.remove('slot--occupied')
-      delete cardEl.dataset.slotId
-    }
-
-    gsap.to(cardEl, {
-      scale: ANIM.liftScale,
-      boxShadow: CARD.shadowLifted,
-      duration: ANIM.liftDuration,
-      ease: 'power2.out',
-    })
-    cardEl.style.zIndex = bumpZIndex()
-  })
-
   Draggable.create(cardEl, {
     type: 'x,y',
+    onPress() {
+      // If card was in a slot, free it
+      if (cardEl.dataset.slotId) {
+        const prevSlot = document.querySelector(`.slot[data-id="${cardEl.dataset.slotId}"]`)
+        if (prevSlot) prevSlot.classList.remove('slot--occupied')
+        delete cardEl.dataset.slotId
+      }
+
+      gsap.to(cardEl, {
+        scale: ANIM.liftScale,
+        boxShadow: CARD.shadowLifted,
+        duration: ANIM.liftDuration,
+        ease: 'power2.out',
+      })
+      cardEl.style.zIndex = bumpZIndex()
+    },
     onDrag() {
       const dx = this.x - (this.vars._prevDragX ?? this.x)
       this.vars._prevDragX = this.x
       gsap.set(cardEl, { rotateZ: calcTilt(dx, ANIM.tiltMax) })
 
-      // Highlight nearest free slot during drag
       const cardCenter = getCardCenter(cardEl)
       clearSlotHighlights()
       const nearest = findNearestFreeSlot(cardCenter)
