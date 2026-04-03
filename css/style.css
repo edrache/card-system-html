@@ -1,0 +1,65 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+#board {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  /* background set by JS from layout.config.js */
+}
+
+/* Cards */
+.card {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  /* width, height, borderRadius, bgColor, shadow set by JS from card.config.js */
+  will-change: transform;
+  transition: box-shadow 0.15s ease;
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+.card__face {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+/* Slots */
+.slot {
+  position: absolute;
+  border-style: dashed;
+  border-radius: inherit;
+  /* width, height, borderRadius, outlineColor, outlineWidth set by JS */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.slot--active {
+  /* slotOutlineColor applied by JS */
+  box-shadow: 0 0 12px 2px var(--slot-highlight-color, #f0c040);
+}
+
+.slot--occupied {
+  border-style: solid;
+  opacity: 0.5;
+}
