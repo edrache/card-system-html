@@ -24,7 +24,7 @@ console.assert(slotEl.classList.contains('slot'), 'slot has .slot class')
 console.assert(slotEl.style.left === slot.x + 'px', 'slot x position correct')
 console.assert(slotEl.style.top === slot.y + 'px', 'slot y position correct')
 
-import { getTopZIndex, bumpZIndex } from '../js/interactions.js'
+import { getTopZIndex, bumpZIndex, calcTilt } from '../js/interactions.js'
 
 // Test: bumpZIndex increments and returns new top value
 const z1 = bumpZIndex()
@@ -32,6 +32,14 @@ const z2 = bumpZIndex()
 console.assert(z2 > z1, 'bumpZIndex increments z-index counter')
 console.assert(typeof z1 === 'number', 'bumpZIndex returns a number')
 console.log('Z-index tests passed ✓')
+
+// calcTilt(dx, tiltMax) → clamped rotation degrees
+console.assert(calcTilt(100, 6) === 6, 'clamps positive tilt to tiltMax')
+console.assert(calcTilt(-100, 6) === -6, 'clamps negative tilt to -tiltMax')
+console.assert(calcTilt(0, 6) === 0, 'no movement = no tilt')
+const mid = calcTilt(30, 6)
+console.assert(mid > 0 && mid <= 6, 'positive dx gives positive tilt within range')
+console.log('Tilt tests passed ✓')
 
 console.log('All tests passed ✓')
 </script>
