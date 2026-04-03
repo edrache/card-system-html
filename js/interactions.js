@@ -36,6 +36,10 @@ function clearSlotHighlights() {
   document.querySelectorAll('.slot--active').forEach(el => el.classList.remove('slot--active'))
 }
 
+function clearCardHighlights() {
+  document.querySelectorAll('.card--snap-target').forEach(el => el.classList.remove('card--snap-target'))
+}
+
 function findNearestFreeSlot(cardCenter) {
   let nearest = null
   let nearestDist = Infinity
@@ -143,8 +147,14 @@ export function initDrag(cardEl) {
 
       const cardCenter = getCardCenter(cardEl)
       clearSlotHighlights()
+      clearCardHighlights()
       const nearest = findNearestFreeSlot(cardCenter)
-      if (nearest) nearest.classList.add('slot--active')
+      if (nearest) {
+        nearest.classList.add('slot--active')
+      } else {
+        const nearestCard = findNearestCard(cardEl, cardCenter)
+        if (nearestCard) nearestCard.classList.add('card--snap-target')
+      }
     },
     onClick() {
       gsap.to(cardEl, {
@@ -156,6 +166,7 @@ export function initDrag(cardEl) {
     },
     onDragEnd() {
       clearSlotHighlights()
+      clearCardHighlights()
       const cardCenter = getCardCenter(cardEl)
       const nearestSlot = findNearestFreeSlot(cardCenter)
       const nearestCard = findNearestCard(cardEl, cardCenter)

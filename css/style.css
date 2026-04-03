@@ -85,3 +85,10 @@ body {
   border-color: var(--slot-highlight-color, #f0c040);
   border-style: solid;
 }
+
+/* Card snap target highlight */
+.card--snap-target {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 3px;
+  box-shadow: 0 0 16px 4px rgba(255, 255, 255, 0.3);
+}
