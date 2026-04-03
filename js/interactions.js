@@ -71,6 +71,16 @@ function findNearestCard(selfEl, cardCenter) {
   return nearest
 }
 
+function playWiggle(cardEl) {
+  const tl = gsap.timeline()
+  for (let i = 0; i < ANIM.wiggleCount; i++) {
+    tl.to(cardEl, { rotateZ: ANIM.wiggleAngle, duration: ANIM.wiggleDuration, ease: ANIM.wiggleEase })
+    tl.to(cardEl, { rotateZ: -ANIM.wiggleAngle, duration: ANIM.wiggleDuration, ease: ANIM.wiggleEase })
+  }
+  tl.to(cardEl, { rotateZ: 0, duration: ANIM.wiggleDuration, ease: ANIM.wiggleEase })
+  return tl
+}
+
 function snapCardToCard(cardEl, targetCardEl) {
   const targetRect = targetCardEl.getBoundingClientRect()
   const boardRect = document.getElementById('board').getBoundingClientRect()
@@ -122,9 +132,27 @@ function snapCardToSlot(cardEl, slotEl) {
 }
 
 export function initDrag(cardEl) {
+  let isDragging = false
+  let wiggleTween = null
+
+  cardEl.addEventListener('mouseenter', () => {
+    if (isDragging) return
+    cardEl.style.outlineColor = CARD.hoverOutlineColor
+    wiggleTween = playWiggle(cardEl)
+  })
+
+  cardEl.addEventListener('mouseleave', () => {
+    cardEl.style.outlineColor = CARD.outlineColor
+    if (wiggleTween) { wiggleTween.kill(); wiggleTween = null }
+    gsap.to(cardEl, { rotateZ: 0, duration: ANIM.wiggleDuration, ease: ANIM.wiggleEase })
+  })
+
   Draggable.create(cardEl, {
     type: 'x,y',
     onPress() {
+      isDragging = true
+      if (wiggleTween) { wiggleTween.kill(); wiggleTween = null }
+      gsap.set(cardEl, { rotateZ: 0 })
       // If card was in a slot, free it
       if (cardEl.dataset.slotId) {
         const prevSlot = document.querySelector(`.slot[data-id="${cardEl.dataset.slotId}"]`)
@@ -157,6 +185,7 @@ export function initDrag(cardEl) {
       }
     },
     onClick() {
+      isDragging = false
       gsap.to(cardEl, {
         scale: 1,
         boxShadow: CARD.shadow,
@@ -165,6 +194,7 @@ export function initDrag(cardEl) {
       })
     },
     onDragEnd() {
+      isDragging = false
       clearSlotHighlights()
       clearCardHighlights()
       const cardCenter = getCardCenter(cardEl)

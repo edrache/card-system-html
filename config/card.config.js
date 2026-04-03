@@ -10,4 +10,5 @@ export const CARD = {
   padding: 8,                          // inner padding of the card in px
   shadow: '1px 2px 4px rgba(0,0,0,0.25)',          // shadow when card is at rest
   shadowLifted: '8px 16px 32px rgba(0,0,0,0.4)',   // shadow when card is held
+  hoverOutlineColor: '#ffffff',                     // card border color on hover
 }
