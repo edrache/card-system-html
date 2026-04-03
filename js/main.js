@@ -5,10 +5,10 @@ import { initDrag } from './interactions.js'
 export const state = {
   deck: [],
   hand: [
-    { id: 'card-1', face: '♠ A', back: '#8b0000', flipped: false },
-    { id: 'card-2', face: '♥ K', back: '#8b0000', flipped: false },
-    { id: 'card-3', face: '♣ Q', back: '#8b0000', flipped: false },
-    { id: 'card-4', face: '♦ J', back: '#8b0000', flipped: false },
+    { id: 'card-1', face: '♠A', back: '#8b0000', flipped: false },
+    { id: 'card-2', face: '♥K', back: '#8b0000', flipped: false },
+    { id: 'card-3', face: '♣Q', back: '#8b0000', flipped: false },
+    { id: 'card-4', face: '♦J', back: '#8b0000', flipped: false },
   ],
   table: [],
 }

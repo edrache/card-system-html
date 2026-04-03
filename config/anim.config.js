@@ -9,8 +9,8 @@ export const ANIM = {
   dropEase: 'power3.in',     // easing when card falls back down after a click
   slotSnapRadius: 60,        // distance in px at which a card snaps to a slot
   cardSnapRadius: 60,        // distance in px at which a card snaps to another card
-  wiggleAngle: 4,            // max rotation angle in degrees during hover wiggle
-  wiggleCount: 3,            // number of back-and-forth oscillations in the wiggle
-  wiggleDuration: 0.06,      // duration of a single wiggle step in seconds
+  wiggleAngle: 2,            // max rotation angle in degrees during hover wiggle
+  wiggleCount: 1,            // number of back-and-forth oscillations in the wiggle
+  wiggleDuration: 0.03,      // duration of a single wiggle step in seconds
   wiggleEase: 'sine.inOut',  // easing for each wiggle step (GSAP easing string)
 }

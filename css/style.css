@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -66,7 +68,7 @@ body {
 
 /* Polish */
 .card {
-  color: #1a1a1a;
+  color: rgb(99, 101, 83);
 }
 
 .slot {
