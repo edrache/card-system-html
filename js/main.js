@@ -23,6 +23,7 @@ export function createCardEl(card) {
   el.style.borderRadius = CARD.borderRadius + 'px'
   el.style.backgroundColor = CARD.bgColor
   el.style.outline = `${CARD.outlineWidth}px solid ${CARD.outlineColor}`
+  el.style.fontFamily = CARD.fontFamily
   el.style.fontSize = CARD.fontSize + 'px'
   el.style.padding = CARD.padding + 'px'
   el.style.boxShadow = CARD.shadow
