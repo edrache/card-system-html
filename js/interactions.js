@@ -105,6 +105,14 @@ export function initDrag(cardEl) {
       const nearest = findNearestFreeSlot(cardCenter)
       if (nearest) nearest.classList.add('slot--active')
     },
+    onClick() {
+      gsap.to(cardEl, {
+        scale: 1,
+        boxShadow: CARD.shadow,
+        duration: ANIM.liftDuration,
+        ease: 'power2.out',
+      })
+    },
     onDragEnd() {
       clearSlotHighlights()
       const cardCenter = getCardCenter(cardEl)
