@@ -136,7 +136,7 @@ export function initDrag(cardEl) {
         scale: ANIM.liftScale,
         boxShadow: CARD.shadowLifted,
         duration: ANIM.liftDuration,
-        ease: 'power2.out',
+        ease: ANIM.liftEase,
       })
       cardEl.style.zIndex = bumpZIndex()
     },
@@ -161,7 +161,7 @@ export function initDrag(cardEl) {
         scale: 1,
         boxShadow: CARD.shadow,
         duration: ANIM.liftDuration,
-        ease: 'power2.out',
+        ease: ANIM.dropEase,
       })
     },
     onDragEnd() {
