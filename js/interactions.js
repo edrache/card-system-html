@@ -1,5 +1,6 @@
 import { CARD } from '../config/card.config.js'
 import { ANIM } from '../config/anim.config.js'
+import { LAYOUT } from '../config/layout.config.js'
 
 let _zCounter = 10
 
@@ -48,6 +49,46 @@ function findNearestFreeSlot(cardCenter) {
   })
 
   return nearest
+}
+
+function findNearestCard(selfEl, cardCenter) {
+  let nearest = null
+  let nearestDist = Infinity
+
+  document.querySelectorAll('.card').forEach(cardEl => {
+    if (cardEl === selfEl) return
+    const dist = getDistance(cardCenter, getCardCenter(cardEl))
+    if (dist < ANIM.cardSnapRadius && dist < nearestDist) {
+      nearest = cardEl
+      nearestDist = dist
+    }
+  })
+
+  return nearest
+}
+
+function snapCardToCard(cardEl, targetCardEl) {
+  const targetRect = targetCardEl.getBoundingClientRect()
+  const boardRect = document.getElementById('board').getBoundingClientRect()
+
+  const targetX = targetRect.left - boardRect.left + LAYOUT.cardSnapOffset.x
+  const targetY = targetRect.top - boardRect.top + LAYOUT.cardSnapOffset.y
+
+  gsap.to(cardEl, {
+    x: 0,
+    y: 0,
+    left: targetX,
+    top: targetY,
+    rotateZ: 0,
+    scale: 1,
+    boxShadow: CARD.shadow,
+    duration: ANIM.snapDuration,
+    ease: ANIM.snapEase,
+    onComplete() {
+      const draggable = Draggable.get(cardEl)
+      if (draggable) draggable.update()
+    },
+  })
 }
 
 function snapCardToSlot(cardEl, slotEl) {
@@ -116,10 +157,13 @@ export function initDrag(cardEl) {
     onDragEnd() {
       clearSlotHighlights()
       const cardCenter = getCardCenter(cardEl)
-      const nearest = findNearestFreeSlot(cardCenter)
+      const nearestSlot = findNearestFreeSlot(cardCenter)
+      const nearestCard = findNearestCard(cardEl, cardCenter)
 
-      if (nearest) {
-        snapCardToSlot(cardEl, nearest)
+      if (nearestSlot) {
+        snapCardToSlot(cardEl, nearestSlot)
+      } else if (nearestCard) {
+        snapCardToCard(cardEl, nearestCard)
       } else {
         gsap.to(cardEl, {
           rotateZ: 0,
