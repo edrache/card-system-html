@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><title>Tests</title></head>
+<body>
+<script type="module">
+import { createCardEl, createSlotEl } from '../js/main.js'
+import { CARD } from '../config/card.config.js'
+import { LAYOUT } from '../config/layout.config.js'
+
+// Test: createCardEl returns a div with correct data-id
+const card = { id: 'card-test', face: 'A', back: '#ccc', flipped: false }
+const el = createCardEl(card)
+console.assert(el.tagName === 'DIV', 'card element is a div')
+console.assert(el.dataset.id === 'card-test', 'card data-id matches')
+console.assert(el.classList.contains('card'), 'card has .card class')
+console.assert(el.style.width === CARD.width + 'px', 'card width matches config')
+
+// Test: createSlotEl returns a div with correct data-id and position
+const slot = LAYOUT.slots[0]
+const slotEl = createSlotEl(slot)
+console.assert(slotEl.tagName === 'DIV', 'slot element is a div')
+console.assert(slotEl.dataset.id === slot.id, 'slot data-id matches')
+console.assert(slotEl.classList.contains('slot'), 'slot has .slot class')
+console.assert(slotEl.style.left === slot.x + 'px', 'slot x position correct')
+console.assert(slotEl.style.top === slot.y + 'px', 'slot y position correct')
+
+console.log('All tests passed ✓')
+</script>
+</body>
+</html>
