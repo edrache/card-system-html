@@ -24,6 +24,15 @@ console.assert(slotEl.classList.contains('slot'), 'slot has .slot class')
 console.assert(slotEl.style.left === slot.x + 'px', 'slot x position correct')
 console.assert(slotEl.style.top === slot.y + 'px', 'slot y position correct')
 
+import { getTopZIndex, bumpZIndex } from '../js/interactions.js'
+
+// Test: bumpZIndex increments and returns new top value
+const z1 = bumpZIndex()
+const z2 = bumpZIndex()
+console.assert(z2 > z1, 'bumpZIndex increments z-index counter')
+console.assert(typeof z1 === 'number', 'bumpZIndex returns a number')
+console.log('Z-index tests passed ✓')
+
 console.log('All tests passed ✓')
 </script>
 </body>
