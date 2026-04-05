@@ -5,195 +5,195 @@ Plan source: `docs/prototype-implementation-plan.md`
 
 ---
 
-## Blok A — Czysta logika ✅
+## Block A — Pure Logic ✅
 
-**Cel:** Czyste funkcje testowalne w konsoli, bez DOM.
+**Goal:** Pure functions that can be tested in the console, without DOM dependencies.
 
-| Plik | Status | Uwagi |
+| File | Status | Notes |
 |---|---|---|
-| `config/game.config.js` | ✅ done | Wszystkie stałe gry (RPS_MODIFIER, ATTACK_BONUS, itp.) |
-| `js/cards-data.js` | ✅ done | 10 kart prototypu z pełną definicją (id, rps, value, role, effect, hp, buffs) |
-| `js/combat.js` | ✅ done | getRpsResult, calcDamage, applyDamage, resolvePair — czyste funkcje |
+| `config/game.config.js` | ✅ done | All game constants (RPS_MODIFIER, ATTACK_BONUS, etc.) |
+| `js/cards-data.js` | ✅ done | 10 prototype cards with full definitions (id, rps, value, role, effect, hp, buffs) |
+| `js/combat.js` | ✅ done | getRpsResult, calcDamage, applyDamage, resolvePair — pure functions |
 
-**Decyzje:**
-- Kart jest 10 (nie 9 jak błędnie podano w planie) — pełna lista w `cards-data.js`
-- `calcDamage` uwzględnia: RPS modifier, role attack/defense, efekty kart (Opportunist, Shield, Reactive Guard, Glass Cannon)
-- Damage minimum = 0 (nie ma leczenia przez combat)
+**Decisions:**
+- There are 10 cards, not 9 as incorrectly stated in the original plan — the full list is in `cards-data.js`
+- `calcDamage` accounts for: RPS modifier, attack/defense roles, and card effects (Opportunist, Shield, Reactive Guard, Glass Cannon)
+- Minimum damage = 0 (combat cannot heal)
 
 ---
 
-## Blok B — DOM i layout ✅
+## Block B — DOM And Layout ✅
 
-**Cel:** Nowa struktura HTML i layout wizualny zweryfikowany w przeglądarce przed logiką gry.
+**Goal:** New HTML structure and visual layout verified in the browser before wiring in game logic.
 
-| Plik | Status | Uwagi |
+| File | Status | Notes |
 |---|---|---|
-| `index.html` | ✅ done | Nowa struktura: #enemy-board, #player-board, #hud, #overlay |
-| `config/layout.config.js` | ✅ done | Usunięto hardcoded x/y, dodano cardGap + enemySlotRowY/playerSlotRowY |
-| `css/style.css` | ✅ done | Nowe style: enemy-slot, #hud, #btn-resolve, #overlay, RPS slot highlights |
-| `js/main.js` | ✅ done (częściowo) | calcSlotRow() — dynamiczne centrowanie slotów na viewport |
-| `js/interactions.js` | ✅ done (patch) | findNearestFreeSlot filtruje `.enemy-slot` — gracz nie może snapować do wrogich slotów |
+| `index.html` | ✅ done | New structure: `#enemy-board`, `#player-board`, `#hud`, `#overlay` |
+| `config/layout.config.js` | ✅ done | Removed hardcoded x/y, added `cardGap` + `enemySlotRowY` / `playerSlotRowY` |
+| `css/style.css` | ✅ done | New styles: `enemy-slot`, `#hud`, `#btn-resolve`, `#overlay`, RPS slot highlights |
+| `js/main.js` | ✅ done (partial) | `calcSlotRow()` — dynamic viewport-based slot centering |
+| `js/interactions.js` | ✅ done (patch) | `findNearestFreeSlot` filters `.enemy-slot` — player cards cannot snap into enemy slots |
 
-**Decyzje:**
-- Kontenery `#enemy-board` / `#player-board` mają `inset: 0` — są grupami z-index, nie dzielą ekranu 50/50
-- Pozycje slotów obliczane dynamicznie w `main.js` z `window.innerWidth` / `window.innerHeight`
-- Enemy slots: `enemySlotRowY: 0.12` (~12% od góry)
-- Player slots: `playerSlotRowY: 0.44` (~44% od góry)
-- Ręka gracza: `window.innerHeight - CARD.height - 50`
+**Decisions:**
+- `#enemy-board` / `#player-board` containers use `inset: 0` — they are z-index groups, not literal 50/50 screen splits
+- Slot positions are calculated dynamically in `main.js` from `window.innerWidth` / `window.innerHeight`
+- Enemy slots: `enemySlotRowY: 0.12` (~12% from the top)
+- Player slots: `playerSlotRowY: 0.44` (~44% from the top)
+- Player hand: `window.innerHeight - CARD.height - 50`
 
 ---
 
-## Blok C — Game state + enemy ✅
+## Block C — Game State + Enemy ✅
 
-**Cel:** Logika stanu gry i talii przeciwnika.
+**Goal:** Central game-state logic and enemy deck behavior.
 
-| Plik | Status | Uwagi |
+| File | Status | Notes |
 |---|---|---|
-| `js/enemy.js` | ✅ done | shuffleDeck (Fisher-Yates), createEnemyDeck, enemyRefillBoard |
-| `js/game.js` | ✅ done | gameState, initRun, drawCards, placeCard, unplaceCard, canResolve, resolveRound |
+| `js/enemy.js` | ✅ done | `shuffleDeck` (Fisher-Yates), `createEnemyDeck`, `enemyRefillBoard` |
+| `js/game.js` | ✅ done | `gameState`, `initRun`, `drawCards`, `placeCard`, `unplaceCard`, `canResolve`, `resolveRound` |
 
-**Decyzje:**
-- `placeCard()` sprawdza first-card bonus przy ustawieniu — jeśli cofniesz kartę, bonus jest zerowany
-- `resolveRound()` po śmierci: żyjące karty gracza wracają do ręki, enemy refilluje board
-- Warunek końca: brak kart gracza = loss, brak kart wroga = win
-- Wyniki rundy logowane do `console.log` (UI zostanie dodane w Bloku D)
+**Decisions:**
+- `placeCard()` checks the first-card bonus on placement — if a card is taken back, the bonus is cleared
+- After `resolveRound()`: surviving player cards return to hand, enemy board refills
+- End conditions: no player cards = loss, no enemy cards = win
+- Round results are logged to `console.log` (UI was added later in Block D)
 
 ---
 
-## Blok D — Wiring ✅
+## Block D — Wiring ✅
 
-**Cel:** Połączenie logiki gry z DOM.
+**Goal:** Connect game logic to the DOM.
 
-| Plik | Status | Uwagi |
+| File | Status | Notes |
 |---|---|---|
-| `js/interactions.js` | ✅ done | Dodano callbacks: onSnap(slotEl, cardEl) i onUnsnap(slotEl, cardEl) do initDrag() |
-| `js/main.js` | ✅ done | Podłączono game.js — initRun, drawCards, placeCard, resolveRound; renderHand, renderEnemyBoard |
-| `js/ui.js` | ✅ done | syncResolveButton, updateRoundCounter, setCardHpLabel, showOverlay, logRoundResult |
+| `js/interactions.js` | ✅ done | Added callbacks: `onSnap(slotEl, cardEl)` and `onUnsnap(slotEl, cardEl)` to `initDrag()` |
+| `js/main.js` | ✅ done | Wired in `game.js` — `initRun`, `drawCards`, `placeCard`, `resolveRound`; `renderHand`, `renderEnemyBoard` |
+| `js/ui.js` | ✅ done | `syncResolveButton`, `updateRoundCounter`, `setCardHpLabel`, `showOverlay`, `logRoundResult` |
 
-**Decyzje:**
-- `onSnap` → `placeCard()`, `onUnsnap` → `unplaceCard()` — game state i DOM zawsze zsynchronizowane
-- Enemy cards renderowane bez drag (cursor: default, bez initDrag)
-- Na tym etapie wyniki rundy widoczne w `console.log`
-- Win/loss pokazuje overlay; loss → reload strony (pełny restart)
+**Decisions:**
+- `onSnap` → `placeCard()`, `onUnsnap` → `unplaceCard()` — game state and DOM are always kept in sync
+- Enemy cards render without drag behavior (`cursor: default`, no `initDrag`)
+- At this stage round results were only visible in `console.log`
+- Win/loss uses the overlay; loss → full page reload (full restart)
 
-**Checkpoint:** ✅ Gra startuje, karty draggowalne, Resolve aktywny gdy 3 sloty zajęte, wyniki w konsoli
+**Checkpoint:** ✅ Game starts, cards are draggable, Resolve is enabled when 3 slots are filled, results appear in the console
 
 ---
 
-## Poza planem — Visual polish ✅
+## Outside The Original Plan — Visual Polish ✅
 
-Zmiany wizualne wykonane na żądanie, poza oryginalną kolejnością bloków.
+Visual changes requested outside the original block order.
 
-### Nowy wygląd kart
-| Plik | Zmiana |
+### New card look
+| File | Change |
 |---|---|
-| `index.html` | Nowe fonty: Bricolage Grotesque + Barlow Condensed |
-| `js/cards-data.js` | Dodano `effectText` do każdej z 10 kart |
-| `js/main.js` | Przepisano `createCardEl` — nowy layout: name top, RPS icon center, effect bottom |
-| `css/style.css` | Nowe klasy: `.card__top`, `.card__name`, `.card__role`, `.card__mid`, `.card__rps-icon`, `.card__bot`, `.card__effect`, `.card__hp` |
+| `index.html` | New fonts: Bricolage Grotesque + Barlow Condensed |
+| `js/cards-data.js` | Added `effectText` to all 10 cards |
+| `js/main.js` | Rewrote `createCardEl` — new layout: name on top, RPS icon in the center, effect on the bottom |
+| `css/style.css` | New classes: `.card__top`, `.card__name`, `.card__role`, `.card__mid`, `.card__rps-icon`, `.card__bot`, `.card__effect`, `.card__hp` |
 
-**Fonty:**
-- `Bricolage Grotesque` 700 — nazwa karty (top)
-- `Barlow Condensed` italic — opis efektu (bottom), role tag, preview overlay
+**Fonts:**
+- `Bricolage Grotesque` 700 — card name (top)
+- `Barlow Condensed` italic — effect text (bottom), role tag, preview overlay
 - `IM Fell English SC` — HUD, round counter, rules panel
 
 ### Enemy card red tint
-- `.card--enemy` — tło `oklch(91% 0.025 15)` (lekki różowo-kremowy odcień)
-- Nazwa i HP w cieplejszym czerwonawym kolorze
-- Przekazywane przez `createCardEl(card, isEnemy = true)`
+- `.card--enemy` — background `oklch(91% 0.025 15)` (a light rose-cream tint)
+- Name and HP use a warmer reddish palette
+- Passed through `createCardEl(card, isEnemy = true)`
 
 ### Placement preview overlay
-Pojawia się na karcie gracza po snapnięciu do slotu (znika po podniesieniu):
-- `↑ WIN` / `= TIE` / `↓ LOSE` — wynik RPS (zielony / złoty / czerwony)
-- `+X buff` — bonus za pierwszą kartę (jeśli dotyczy)
+Appears on a player card after it snaps into a slot (disappears when picked up again):
+- `↑ WIN` / `= TIE` / `↓ LOSE` — RPS outcome (green / gold / red)
+- `+X buff` — first-card bonus if applicable
 - `11 ↔ 5` — damage dealt ↔ damage taken
-- `♥ 6 → 1` — HP po walce (zielony = przeżyje, czerwony = zginie)
+- `♥ 6 → 1` — HP after combat (green = survives, red = dies)
 
-**Implementacja:** `showPlacementPreview(cardEl, playerCard, slotIndex)` i `clearPlacementPreview(cardEl)` w `main.js`. Używa `calcDamage` read-only z aktualnym stanem kart (po aplikacji first-card bonus).
+**Implementation:** `showPlacementPreview(cardEl, playerCard, slotIndex)` and `clearPlacementPreview(cardEl)` in `main.js`. Uses read-only `calcDamage` against the current game state (after first-card bonus has been applied).
 
 ### Column Y reordering
-Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą rundę:
-- Najsilniejszy enemy → najwyżej na ekranie (y offset ujemny)
-- Najsłabszy / pusty slot → najniżej (y offset dodatni)
-- Remis = ta sama pozycja Y
-- Animowane przez GSAP (`power2.inOut`, 0.65s)
-- Spread: ±55px od pozycji bazowej (max 110px między kolumnami)
+Columns (enemy slot + player slot pair) are sorted by enemy strength each round:
+- Strongest enemy → highest on screen (negative y offset)
+- Weakest / empty slot → lowest (positive y offset)
+- Ties = same Y position
+- Animated with GSAP (`power2.inOut`, `0.65s`)
+- Spread: `±55px` from the base position (`110px` max between columns)
 
-**Implementacja:** `reorderColumns()` w `main.js`. Wywoływane po `initRun()` i po każdym `resolveRound()`. Śledzi `playerSlotEls[]`, `enemySlotEls[]`, `enemyCardEls[]` jako tablice refs indeksowane numerem slotu.
+**Implementation:** `reorderColumns()` in `main.js`. Called after `initRun()` and after each `resolveRound()`. Tracks `playerSlotEls[]`, `enemySlotEls[]`, `enemyCardEls[]` as ref arrays indexed by slot number.
 
-**Formuła rankingu:** dense rank wg siły (value + buffs), puste sloty zawsze ostatnie. Offset = `(rank / maxRank) * 2 * SPREAD - SPREAD`.
+**Ranking formula:** dense rank by strength (`value + buffs`), empty slots always last. Offset = `(rank / maxRank) * 2 * SPREAD - SPREAD`.
 
 ### Rules panel
-`<aside id="rules-panel">` — stały panel po lewej stronie planszy (160px szerokości):
-- Sekcje: Flow, Combat, First Card, Column Order, RPS
-- Font: `IM Fell English SC` (tytuły) + `Barlow Condensed` (tekst)
-- Kolor: subtelny, dopasowany do planszy (`oklch(70% 0.03 265 / 0.45)`)
-- `pointer-events: none` — nie blokuje gry
+`<aside id="rules-panel">` — fixed panel on the left side of the board (`160px` wide):
+- Sections: Flow, Combat, First Card, Column Order, RPS
+- Font: `IM Fell English SC` (titles) + `Barlow Condensed` (body text)
+- Color: subtle and matched to the board (`oklch(70% 0.03 265 / 0.45)`)
+- `pointer-events: none` — does not block gameplay
 
 ---
 
-## Blok E — Pętla gracza (Faza 2) 🔲
+## Block E — Player Loop (Phase 2) 🔲
 
-| Zadanie | Status |
+| Task | Status |
 |---|---|
-| drawCards() — dobieranie kart do ręki | ✅ (zaimplementowane w game.js w Bloku C) |
-| Hand rendering (createCardEl z game cards) | ✅ (zaimplementowane w main.js w Bloku D) |
-| Placement confirmation (gameState.playerBoard[slotIndex] = card) | ✅ (zaimplementowane w game.js w Bloku C) |
-| Tracking placementOrder (first-card bonus) | ✅ (zaimplementowane w game.js w Bloku C) |
-| applyPlacementBonus() | ✅ (zaimplementowane w game.js w Bloku C) |
-| Resolve button aktywny gdy wszystkie sloty zajęte | ✅ (syncResolveButton w ui.js) |
+| `drawCards()` — draw cards into hand | ✅ (implemented in `game.js` in Block C) |
+| Hand rendering (`createCardEl` with game cards) | ✅ (implemented in `main.js` in Block D) |
+| Placement confirmation (`gameState.playerBoard[slotIndex] = card`) | ✅ (implemented in `game.js` in Block C) |
+| Tracking `placementOrder` (first-card bonus) | ✅ (implemented in `game.js` in Block C) |
+| `applyPlacementBonus()` | ✅ (implemented in `game.js` in Block C) |
+| Resolve button active when all slots are filled | ✅ (`syncResolveButton` in `ui.js`) |
 
-> Blok E faktycznie zrealizowany w trakcie Bloków C i D. Gra jest grywalna end-to-end.
+> Block E was effectively completed during Blocks C and D. The game is playable end-to-end.
 
-**Checkpoint:** ✅ Gra grywalny od początku do końca jednego starcia
+**Checkpoint:** ✅ Game is playable from start to finish for a single encounter
 
 ---
 
-## Blok F — System wsparcia i buffów (Faza 4) 🔲
+## Block F — Support And Buff System (Phase 4) 🔲
 
-| Zadanie | Status |
+| Task | Status |
 |---|---|
-| getAdjacentAllies() w combat.js | ✅ |
-| activateSupportOnPlacement() | ✅ |
-| activateSupportPostCombat() | ✅ |
-| Edge case: Fragile Buffer (buffAmount: 2) | ✅ |
-| Edge case: Persistent Buffer (ghostBuffer po śmierci) | 🔲 |
+| `getAdjacentAllies()` in `combat.js` | ✅ |
+| `activateSupportOnPlacement()` | ✅ |
+| `activateSupportPostCombat()` | ✅ |
+| Edge case: Fragile Buffer (`buffAmount: 2`) | ✅ |
+| Edge case: Persistent Buffer (ghostBuffer after death) | 🔲 |
 
 ---
 
-## Blok G — Persystencja HP (Faza 5) 🔲
+## Block G — HP Persistence (Phase 5) 🔲
 
-| Zadanie | Status |
+| Task | Status |
 |---|---|
-| card.hp nie resetuje się między rundami | ✅ (game.js nie resetuje hp — karty mutowane in-place) |
-| Death check — usunięcie martwych kart z board + DOM | ✅ (resolveRound w game.js) |
-| Przeżyłe karty wracają do ręki gracza | ✅ (resolveRound w game.js) |
-| Re-render kart z aktualnym HP | ✅ (po resolve hand i board renderują jawne `ATK/HP`) |
+| `card.hp` does not reset between rounds | ✅ (`game.js` keeps hp in-place — cards are mutated in place) |
+| Death check — remove dead cards from board + DOM | ✅ (`resolveRound` in `game.js`) |
+| Surviving cards return to the player's hand | ✅ (`resolveRound` in `game.js`) |
+| Re-render cards with updated HP | ✅ (after resolve both hand and board render explicit `ATK/HP`) |
 
 ---
 
-## Blok H — UX czytelność (Faza 6) 🔲
+## Block H — UX Readability (Phase 6) 🔲
 
-| Zadanie | Status |
+| Task | Status |
 |---|---|
-| Combat preview na placement (projected damage overlay) | ✅ (zamiast starego overlayu: badge na karcie + pełny hover breakdown) |
-| Kolorowanie slotów wg RPS: zielony/żółty/czerwony | 🔲 (CSS klasy już istnieją: `.slot--advantage`, `.slot--neutral`, `.slot--disadvantage`) |
-| Numeracja kolejności rozstrzygania na kartach wroga | ✅ (marker `⚔️` + `1st/2nd/3rd`, spięte z kolejnością resolve) |
-| Jawne pochodzenie modyfikatorów na kartach | ✅ |
+| Combat preview on placement (projected damage overlay) | ✅ (replaced by a card badge + full hover breakdown) |
+| Slot coloring by RPS: green/yellow/red | 🔲 (CSS classes already exist: `.slot--advantage`, `.slot--neutral`, `.slot--disadvantage`) |
+| Resolution-order numbering on enemy cards | ✅ (marker `⚔️` + `1st/2nd/3rd`, tied to resolve order) |
+| Visible provenance of card modifiers | ✅ |
 
 ---
 
-## Blok I — Struktura runu (Faza 7) 🔲
+## Block I — Run Structure (Phase 7) 🔲
 
-| Zadanie | Status |
+| Task | Status |
 |---|---|
-| Reward screen (wybór 1 z 3 kart) | 🔲 |
-| Ekran przegranej z Restart | ✅ (loss overlay z btn-restart w main.js) |
-| game.js resetRun() | ✅ (resetRun zaimplementowany, używa location.reload()) |
+| Reward screen (choose 1 of 3 cards) | 🔲 |
+| Defeat screen with Restart | ✅ (loss overlay with `btn-restart` in `main.js`) |
+| `game.js resetRun()` | ✅ (`resetRun` implemented, uses `location.reload()`) |
 
 ---
 
-## 2026-04-05 Verification + bugfix
+## 2026-04-05 Verification + Bugfix
 
 - Fixed a real drag-and-drop regression in `js/interactions.js`: `snapCardToSlot()` called `callbacks.onSnap` without receiving `callbacks`, which caused `ReferenceError: callbacks is not defined` after placing a card.
 - Added `tests/game-logic-smoke.mjs` for fast module-level verification of combat, placement bonus, draw flow, round resolution, and win state.
@@ -206,7 +206,7 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 
 ---
 
-## 2026-04-05 Buff provenance + support readability
+## 2026-04-05 Buff Provenance + Support Readability
 
 - Added runtime `buffSources` tracking in `js/buffs.js` so card modifiers are no longer opaque integer mutations; each buff now carries `amount`, `label`, `description`, and `scope`.
 - Reworked `game.js` to recalculate temporary placement buffs deterministically after each place/unplace/refill:
@@ -224,11 +224,11 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
   - first-card bonus is cleared after round resolution
   - post-combat support buffs persist onto surviving cards
 
-**Open follow-up:** `Persistent Buffer` ghost behavior (`persistBuffTurns`) is still not implemented; current provenance system is ready for it, but the death-phase board retention logic still needs to be added.
+**Open follow-up:** `Persistent Buffer` ghost behavior (`persistBuffTurns`) is still not implemented; the current provenance system is ready for it, but death-phase board retention logic still needs to be added.
 
 ---
 
-## 2026-04-05 Combat preview UX pass
+## 2026-04-05 Combat Preview UX Pass
 
 - Removed the old on-card `card__preview` combat overlay from placement; it obscured the card face too much.
 - Added a compact persistent combat badge on slotted player cards (`WIN` / `LOSE` / `TRADE` / `CLASH`) so the expected fight result is visible without hover.
@@ -241,31 +241,31 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 
 ---
 
-## 2026-04-05 Slow resolve flow
+## 2026-04-05 Slow Resolve Flow
 
 - Reworked round resolution into a staged flow in `js/game.js`:
   - `prepareResolveRound()` locks the board and captures fight order
   - `resolveCombatStep(slotIndex)` resolves exactly one pair
   - `finalizeResolveRound()` applies cleanup / return-to-hand / enemy refill
   - `resolveRound()` still exists as a compatibility wrapper for logic tests
-- Rebuilt `Resolve` UX in `js/main.js`:
-  - first click starts combat and immediately resolves only the first fight
+- Rebuilt the `Resolve` UX in `js/main.js`:
+  - the first click starts combat and immediately resolves only the first fight
   - the same button becomes `Continue` for the next fight
-  - already-resolved slots stop showing projected combat badges
-  - player hand is interaction-locked during the staged combat flow
+  - already resolved slots stop showing projected combat badges
+  - the player's hand is interaction-locked during the staged combat flow
 - Added step-readability feedback in `css/style.css` + `js/main.js`:
-  - active slot pair gets a dedicated resolve highlight
+  - the active slot pair gets a dedicated resolve highlight
   - each resolved card shows a short note (`Stays` / `Destroyed`, HP delta, dealt damage)
   - destroyed cards tilt to `30deg` and stay visibly "broken" until cleanup
-- Added end-of-round transition animation:
-  - surviving player cards animate from board back into the hand
+- Added an end-of-round transition animation:
+  - surviving player cards animate from the board back into the hand
   - newly drawn player cards animate in from the bottom-center draw origin
   - newly spawned enemy cards animate in from the top-center draw origin
   - column reordering still runs after the cleanup animation settles
 - Extended browser smoke coverage in `tests/rps_browser_smoke.py`:
   - asserts `Resolve -> Continue`
   - verifies first-fight UI state before cleanup
-  - clicks through all three fights and confirms only then the game advances to `Round 2`
+  - clicks through all three fights and confirms that only then the game advances to `Round 2`
 - New visual smoke artifact:
   - `output/browser-smoke/after-first-fight.png`
 
@@ -274,21 +274,21 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 - `python3 tests/rps_browser_smoke.py`
 
 **Potential follow-up**
-- The per-fight note currently overlaps the lower part of the card art by design. If we want a more minimal combat readout later, this is the first place to simplify.
+- The per-fight note currently overlaps the lower part of the card art by design. If we want a lighter combat readout later, this is the first place to simplify.
 
-## 2026-04-05 Documentation sync
+## 2026-04-05 Documentation Sync
 
 - Updated `README.md` so the public repo description now matches the staged combat flow shipped in this branch.
 - `Current Prototype` now explicitly describes `Resolve -> Continue -> cleanup`.
-- README test notes now mention the first-fight staged UI and new visual artifact `after-first-fight.png`.
-- README open work now includes the possible follow-up to reduce the visual weight of the per-fight result note.
+- README test notes now mention the first-fight staged UI and the new visual artifact `after-first-fight.png`.
+- README open work now also includes the possible follow-up to reduce the visual weight of the per-fight result note.
 
 ---
 
-## 2026-04-05 ATK / HP split branch
+## 2026-04-05 ATK / HP Split Branch
 
 - Created branch `feature/rps-atk-hp-split` for the stat-clarity pass.
-- Card face now shows explicit `ATK/HP` instead of a single ambiguous number:
+- Card faces now show explicit `ATK/HP` instead of a single ambiguous number:
   - first number = current attack value used for damage calculation
   - second number = current HP used for survival
 - Hover tooltip text updated from generic `Value` wording to explicit `Base ATK` / `Current HP`.
@@ -296,9 +296,9 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 
 ---
 
-## 2026-04-05 ATK / HP notation polish + board spacing
+## 2026-04-05 ATK / HP Notation Polish + Board Spacing
 
-- Unified effect text, tooltip copy, and rules panel around the `ATK/HP` delta notation:
+- Unified effect text, tooltip copy, and rules panel wording around `ATK/HP` delta notation:
   - attack bonuses shown as `+X/+0`
   - incoming HP loss shown as `+0/-Y`
   - block kept as separate wording instead of forcing it into fake HP text
@@ -307,8 +307,8 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
   - `EN +0/-Y`
 - Improved tooltip formatting:
   - section labels are underlined
-  - stat changes render inside thin 1px framed chips
-- Moved enemy and player rows closer together in `config/layout.config.js`.
+  - stat changes render inside thin `1px` framed chips
+- Moved the enemy and player rows closer together in `config/layout.config.js`.
 - Added per-column fight markers between rows:
   - `⚔️`
   - resolve order label (`1st`, `2nd`, `3rd`)
