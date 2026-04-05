@@ -22,6 +22,23 @@ export const gameState = {
   placementOrder: [],       // Card[] — tracks order cards were placed (for first-card bonus)
 }
 
+function getCardStrength(card) {
+  return card ? card.value + card.buffs : -Infinity
+}
+
+export function getResolutionOrder(board = gameState.enemyBoard) {
+  return board
+    .map((card, slotIndex) => ({
+      slotIndex,
+      strength: getCardStrength(card),
+    }))
+    .sort((a, b) => {
+      if (b.strength !== a.strength) return b.strength - a.strength
+      return a.slotIndex - b.slotIndex
+    })
+    .map((entry) => entry.slotIndex)
+}
+
 function getAllCardsInState() {
   const uniqueCards = new Set()
   const cards = []
@@ -248,9 +265,10 @@ export function resolveRound() {
   gameState.phase = 'combat'
   recalculateBoardBuffs()
   const log = []
+  const resolutionOrder = getResolutionOrder()
 
   // Resolve each slot pair
-  for (let i = 0; i < GAME.SLOT_COUNT; i++) {
+  for (const i of resolutionOrder) {
     const player = gameState.playerBoard[i]
     const enemy = gameState.enemyBoard[i]
 

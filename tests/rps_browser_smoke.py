@@ -52,21 +52,38 @@ with sync_playwright() as playwright:
 
     assert page.locator("#cards .card").count() == 3
     assert page.locator("#enemy-cards .card").count() == 3
+    assert page.locator(".column-fight-marker").count() == 3
+    assert page.locator(".column-fight-marker__order").count() == 3
     assert page.locator("#btn-resolve").is_enabled() is False
+
+    enemy_card = page.locator("#enemy-cards .card").nth(0)
+    enemy_card.hover()
+    enemy_tooltip = enemy_card.locator(".card__tooltip")
+    assert enemy_tooltip.count() == 1
+    enemy_card_box = enemy_card.bounding_box()
+    enemy_tooltip_box = enemy_tooltip.bounding_box()
+    assert enemy_card_box is not None
+    assert enemy_tooltip_box is not None
+    assert enemy_tooltip_box["y"] > enemy_card_box["y"] + enemy_card_box["height"] - 2
 
     page.screenshot(path=str(OUTPUT_DIR / "before-placement.png"), full_page=True)
 
     drag_card_to_slot(page, 0, 0)
     assert page.locator("#cards .card").nth(0).get_attribute("data-slot-id") == "slot-0"
     assert page.locator("#cards .card").nth(0).locator(".card__preview").count() == 0
-    assert page.locator("#cards .card").nth(0).locator(".card__value").count() == 1
+    assert page.locator("#cards .card").nth(0).locator(".card__stats").count() == 1
+    assert page.locator("#cards .card").nth(0).locator(".card__attack").count() == 1
+    assert page.locator("#cards .card").nth(0).locator(".card__hp").count() == 1
     assert page.locator("#cards .card").nth(0).locator(".card__combat-badge").count() == 1
+    assert "ME" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
+    assert "EN" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
 
     page.locator("#cards .card").nth(0).hover()
     assert page.locator("#cards .card").nth(0).locator(".card__tooltip").count() == 1
-    assert "Base value" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
+    assert "Base:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
+    assert "Current:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
     assert "Your attack" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
-    assert "HP change" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
+    assert "Outcome:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
 
     drag_card_to_slot(page, 1, 1)
     drag_card_to_slot(page, 2, 2)

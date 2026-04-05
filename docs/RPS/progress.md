@@ -168,7 +168,7 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 | card.hp nie resetuje się między rundami | ✅ (game.js nie resetuje hp — karty mutowane in-place) |
 | Death check — usunięcie martwych kart z board + DOM | ✅ (resolveRound w game.js) |
 | Przeżyłe karty wracają do ręki gracza | ✅ (resolveRound w game.js) |
-| Re-render kart z aktualnym HP | 🔲 (renderHand re-renderuje karty, ale HP label nie jest aktualizowany po walce) |
+| Re-render kart z aktualnym HP | ✅ (po resolve hand i board renderują jawne `ATK/HP`) |
 
 ---
 
@@ -176,9 +176,9 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 
 | Zadanie | Status |
 |---|---|
-| Combat preview na placement (projected damage overlay) | ✅ zrobione poza kolejnością (patrz sekcja Visual polish) |
+| Combat preview na placement (projected damage overlay) | ✅ (zamiast starego overlayu: badge na karcie + pełny hover breakdown) |
 | Kolorowanie slotów wg RPS: zielony/żółty/czerwony | 🔲 (CSS klasy już istnieją: `.slot--advantage`, `.slot--neutral`, `.slot--disadvantage`) |
-| Numeracja kolejności rozstrzygania na kartach wroga | 🔲 |
+| Numeracja kolejności rozstrzygania na kartach wroga | ✅ (marker `⚔️` + `1st/2nd/3rd`, spięte z kolejnością resolve) |
 | Jawne pochodzenie modyfikatorów na kartach | ✅ |
 
 ---
@@ -238,3 +238,43 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
   - enemy attack breakdown
   - HP change for both sides after the projected combat
 - Added `getDamageBreakdown()` in `js/combat.js` as the shared source for tooltip combat explanations and future combat-debug UX.
+
+---
+
+## 2026-04-05 ATK / HP split branch
+
+- Created branch `feature/rps-atk-hp-split` for the stat-clarity pass.
+- Card face now shows explicit `ATK/HP` instead of a single ambiguous number:
+  - first number = current attack value used for damage calculation
+  - second number = current HP used for survival
+- Hover tooltip text updated from generic `Value` wording to explicit `Base ATK` / `Current HP`.
+- Tooltip footer now explicitly states that attack buffs do not increase HP.
+
+---
+
+## 2026-04-05 ATK / HP notation polish + board spacing
+
+- Unified effect text, tooltip copy, and rules panel around the `ATK/HP` delta notation:
+  - attack bonuses shown as `+X/+0`
+  - incoming HP loss shown as `+0/-Y`
+  - block kept as separate wording instead of forcing it into fake HP text
+- Replaced the old `WIN / LOSE / TRADE / CLASH` on-card marker with concrete per-side result text:
+  - `ME +0/-X`
+  - `EN +0/-Y`
+- Improved tooltip formatting:
+  - section labels are underlined
+  - stat changes render inside thin 1px framed chips
+- Moved enemy and player rows closer together in `config/layout.config.js`.
+- Added per-column fight markers between rows:
+  - `⚔️`
+  - resolve order label (`1st`, `2nd`, `3rd`)
+  - order is now sourced from the same ranking used by `resolveRound()`
+- Lowered fight markers below enemy cards and their tooltips in z-order.
+- Enemy card tooltips now open below the enemy card; player card tooltips remain above the player card.
+- Raised hovered cards above other cards so enemy tooltips are no longer obscured by player cards.
+
+**Current readability state:**
+- Card face: quick `ATK/HP`
+- Slotted card badge: immediate projected HP deltas for both sides
+- Hover: full provenance + combat breakdown
+- Column center: fight marker + true resolve order

@@ -3,18 +3,20 @@ import { LAYOUT } from '../config/layout.config.js'
 import { GAME } from '../config/game.config.js'
 import { getBuffSummary } from './buffs.js'
 import { initDrag } from './interactions.js'
-import { gameState, initRun, drawCards, placeCard, unplaceCard, resolveRound } from './game.js'
+import { gameState, getResolutionOrder, initRun, drawCards, placeCard, unplaceCard, resolveRound } from './game.js'
 import { getDamageBreakdown } from './combat.js'
-import { syncResolveButton, updateRoundCounter, setCardHpLabel, logRoundResult, showOverlay } from './ui.js'
+import { syncResolveButton, updateRoundCounter, logRoundResult, showOverlay } from './ui.js'
 
 const RPS_ICON   = { rock: '✊', paper: '✋', scissors: '✌️' }
 const COLUMN_SPREAD = 55   // px — max Y offset for column reordering
+const COLUMN_FIGHT_EMOJI = '⚔️'
 
 // ── DOM refs tracked by slot index ───────────────────────────────────────────
 
 const playerSlotEls = []  // playerSlotEls[i] = player slot element at index i
 const enemySlotEls  = []  // enemySlotEls[i]  = enemy slot element at index i
 const enemyCardEls  = []  // enemyCardEls[i]  = enemy card element at index i (null if empty)
+const columnMarkerEls = [] // columnMarkerEls[i] = fight marker between enemy and player slot
 
 // ── Element factories ─────────────────────────────────────────────────────────
 
@@ -25,8 +27,52 @@ function createTooltipRow(text, extraClass = '') {
   return item
 }
 
+function createTooltipDelta(text) {
+  const delta = document.createElement('span')
+  delta.className = 'card__tooltip-delta'
+  delta.textContent = text
+  return delta
+}
+
+function appendTooltipPart(parent, part) {
+  if (typeof part === 'string') {
+    parent.appendChild(document.createTextNode(part))
+    return
+  }
+
+  if (part.type === 'delta') {
+    parent.appendChild(createTooltipDelta(part.text))
+    return
+  }
+
+  if (part.type === 'label') {
+    const label = document.createElement('span')
+    label.className = 'card__tooltip-label'
+    label.textContent = part.text
+    parent.appendChild(label)
+  }
+}
+
+function createTooltipRichRow(parts, extraClass = '') {
+  const item = document.createElement('li')
+  item.className = extraClass ? `card__tooltip-item ${extraClass}` : 'card__tooltip-item'
+  parts.forEach((part) => appendTooltipPart(item, part))
+  return item
+}
+
+function createTooltipSectionRow(label, parts, extraClass = '') {
+  return createTooltipRichRow(
+    [{ type: 'label', text: `${label}:` }, ' ', ...parts],
+    extraClass
+  )
+}
+
 function formatSignedAmount(amount) {
   return `${amount >= 0 ? '+' : ''}${amount}`
+}
+
+function formatStatDelta(atkDelta = 0, hpDelta = 0) {
+  return `${formatSignedAmount(atkDelta)}/${formatSignedAmount(hpDelta)}`
 }
 
 function getCombatProjection(playerCard, slotIndex) {
@@ -35,6 +81,8 @@ function getCombatProjection(playerCard, slotIndex) {
 
   const playerBreakdown = getDamageBreakdown(playerCard, enemyCard)
   const enemyBreakdown = getDamageBreakdown(enemyCard, playerCard)
+  const playerHpDelta = -enemyBreakdown.finalDamage
+  const enemyHpDelta = -playerBreakdown.finalDamage
   const playerAfterHp = Math.max(0, playerCard.hp - enemyBreakdown.finalDamage)
   const enemyAfterHp = Math.max(0, enemyCard.hp - playerBreakdown.finalDamage)
 
@@ -55,6 +103,8 @@ function getCombatProjection(playerCard, slotIndex) {
     enemyCard,
     playerBreakdown,
     enemyBreakdown,
+    playerHpDelta,
+    enemyHpDelta,
     playerAfterHp,
     enemyAfterHp,
     outcome,
@@ -64,34 +114,39 @@ function getCombatProjection(playerCard, slotIndex) {
 }
 
 function formatAttackLine(label, breakdown) {
-  const parts = [`${breakdown.baseAttack} base`]
+  const parts = [
+    { type: 'delta', text: `${breakdown.baseAttack}/${breakdown.baseAttack}` },
+    ' base',
+  ]
 
   if (breakdown.buffAttack > 0) {
-    parts.push(`${formatSignedAmount(breakdown.buffAttack)} buff`)
+    parts.push(', ', { type: 'delta', text: formatStatDelta(breakdown.buffAttack, 0) }, ' buffs')
   }
 
   breakdown.attackModifiers.forEach((modifier) => {
-    parts.push(`${formatSignedAmount(modifier.amount)} ${modifier.label}`)
+    parts.push(', ', { type: 'delta', text: formatStatDelta(modifier.amount, 0) }, ` ${modifier.label}`)
   })
 
-  let text = `${label}: ${parts.join(', ')} = ${breakdown.rawAttack}`
+  parts.push(' => ', { type: 'delta', text: `${breakdown.rawAttack}/0` }, ' applied')
   if (breakdown.reduction > 0) {
-    text += `, block ${breakdown.reduction}`
+    parts.push(', ', { type: 'delta', text: `0/-${breakdown.reduction}` }, ' blocked')
   }
-  text += `, final ${breakdown.finalDamage}`
-  return text
+  parts.push(', hit ', { type: 'delta', text: formatStatDelta(0, -breakdown.finalDamage) })
+  return createTooltipSectionRow(label, parts, 'card__tooltip-item--combat')
 }
 
 function formatDefenseLine(label, breakdown) {
   if (breakdown.reduction <= 0) {
-    return `${label}: no active reduction`
+    return createTooltipSectionRow(label, ['no active reduction'], 'card__tooltip-item--combat')
   }
 
-  const details = breakdown.reductionSources
-    .map((source) => `${formatSignedAmount(source.amount)} ${source.label}`)
-    .join(', ')
-
-  return `${label}: ${details} = ${breakdown.reduction}`
+  const parts = []
+  breakdown.reductionSources.forEach((source, index) => {
+    if (index > 0) parts.push(', ')
+    parts.push({ type: 'delta', text: `0/-${source.amount}` }, ` ${source.label}`)
+  })
+  parts.push(' => ', { type: 'delta', text: `0/-${breakdown.reduction}` }, ' total block')
+  return createTooltipSectionRow(label, parts, 'card__tooltip-item--combat')
 }
 
 function createCardTooltip(card, summary, effectiveValue, combatProjection = null) {
@@ -100,37 +155,53 @@ function createCardTooltip(card, summary, effectiveValue, combatProjection = nul
 
   const title = document.createElement('div')
   title.className = 'card__tooltip-title'
-  title.textContent = `Value ${effectiveValue}`
+  title.textContent = `ATK ${effectiveValue} / HP ${card.hp}`
 
   const list = document.createElement('ul')
   list.className = 'card__tooltip-list'
-  list.appendChild(createTooltipRow(`Base value ${card.value}`))
+  list.appendChild(createTooltipSectionRow('Base', [{ type: 'delta', text: `${card.value}/${card.value}` }]))
+  list.appendChild(createTooltipSectionRow('Current', [{ type: 'delta', text: `${effectiveValue}/${card.hp}` }]))
 
   if (summary.sources.length === 0) {
     list.appendChild(createTooltipRow('No active modifiers'))
   } else {
     summary.sources.forEach((source) => {
-      const sign = source.amount >= 0 ? '+' : ''
       list.appendChild(
-        createTooltipRow(`${sign}${source.amount} ${source.label}: ${source.description}`)
+        createTooltipRichRow([
+          { type: 'delta', text: formatStatDelta(source.amount, 0) },
+          ' ',
+          `${source.label}: ${source.description}`,
+        ])
       )
     })
   }
 
   if (summary.cappedBy > 0) {
     list.appendChild(
-      createTooltipRow(`-${summary.cappedBy} Buff cap: maximum bonus is ${GAME.BUFF_CAP}`, 'card__tooltip-item--cap')
+      createTooltipRichRow([
+        { type: 'delta', text: formatStatDelta(-summary.cappedBy, 0) },
+        ' ',
+        `Buff cap: maximum bonus is ${GAME.BUFF_CAP}`,
+      ], 'card__tooltip-item--cap')
     )
   }
 
   if (combatProjection) {
-    list.appendChild(createTooltipRow(`Combat ${combatProjection.label} (${combatProjection.rps})`, 'card__tooltip-item--combat'))
-    list.appendChild(createTooltipRow(formatAttackLine('Your attack', combatProjection.playerBreakdown), 'card__tooltip-item--combat'))
-    list.appendChild(createTooltipRow(formatDefenseLine('Your defense', combatProjection.enemyBreakdown), 'card__tooltip-item--combat'))
-    list.appendChild(createTooltipRow(formatAttackLine(`${combatProjection.enemyCard.name} attack`, combatProjection.enemyBreakdown), 'card__tooltip-item--combat'))
     list.appendChild(
-      createTooltipRow(
-        `HP change: you ${card.hp} -> ${combatProjection.playerAfterHp}, enemy ${combatProjection.enemyCard.hp} -> ${combatProjection.enemyAfterHp}`,
+      createTooltipSectionRow('Combat', [combatProjection.label, ` (${combatProjection.rps})`], 'card__tooltip-item--combat')
+    )
+    list.appendChild(formatAttackLine('Your attack', combatProjection.playerBreakdown))
+    list.appendChild(formatDefenseLine('Your defense', combatProjection.enemyBreakdown))
+    list.appendChild(formatAttackLine(`${combatProjection.enemyCard.name} attack`, combatProjection.enemyBreakdown))
+    list.appendChild(
+      createTooltipSectionRow(
+        'Outcome',
+        [
+          'you ',
+          { type: 'delta', text: formatStatDelta(0, combatProjection.playerAfterHp - card.hp) },
+          ', enemy ',
+          { type: 'delta', text: formatStatDelta(0, combatProjection.enemyAfterHp - combatProjection.enemyCard.hp) },
+        ],
         'card__tooltip-item--combat'
       )
     )
@@ -138,7 +209,7 @@ function createCardTooltip(card, summary, effectiveValue, combatProjection = nul
 
   const footer = document.createElement('div')
   footer.className = 'card__tooltip-footer'
-  footer.textContent = `HP ${card.hp}/${card.value}`
+  footer.textContent = `Notation: ATK/HP`
 
   tooltip.appendChild(title)
   tooltip.appendChild(list)
@@ -146,15 +217,18 @@ function createCardTooltip(card, summary, effectiveValue, combatProjection = nul
   return tooltip
 }
 
-function updateValueCluster(cardEl, summary, effectiveValue) {
-  const valueCluster = cardEl.querySelector('.card__value-cluster')
-  const valueEl = cardEl.querySelector('.card__value')
-  if (!valueCluster || !valueEl) return
+function updateStatsCluster(cardEl, card, summary, effectiveValue) {
+  const statsCluster = cardEl.querySelector('.card__stats-cluster')
+  const attackEl = cardEl.querySelector('.card__attack')
+  const hpEl = cardEl.querySelector('.card__hp')
+  if (!statsCluster || !attackEl || !hpEl) return
 
-  valueEl.textContent = `${effectiveValue}`
-  valueEl.classList.toggle('card__value--modified', summary.total > 0 || summary.cappedBy > 0)
+  attackEl.textContent = `${effectiveValue}`
+  attackEl.classList.toggle('card__stat--modified', summary.total > 0 || summary.cappedBy > 0)
+  hpEl.textContent = `${card.hp}`
+  hpEl.classList.toggle('card__stat--damaged', card.hp < card.value)
 
-  const existingDelta = valueCluster.querySelector('.card__value-delta')
+  const existingDelta = statsCluster.querySelector('.card__value-delta')
   if (summary.total > 0) {
     if (existingDelta) {
       existingDelta.textContent = `+${summary.total}`
@@ -162,7 +236,7 @@ function updateValueCluster(cardEl, summary, effectiveValue) {
       const delta = document.createElement('div')
       delta.className = 'card__value-delta'
       delta.textContent = `+${summary.total}`
-      valueCluster.appendChild(delta)
+      statsCluster.appendChild(delta)
     }
   } else {
     existingDelta?.remove()
@@ -178,19 +252,51 @@ function updateCombatBadge(cardEl, combatProjection = null) {
 
   const badge = existing ?? document.createElement('div')
   badge.className = `card__combat-badge card__combat-badge--${combatProjection.outcome}`
-  badge.textContent = combatProjection.label
+  badge.innerHTML =
+    `<span class="card__combat-badge-line">ME ${formatStatDelta(0, combatProjection.playerHpDelta)}</span>` +
+    `<span class="card__combat-badge-line">EN ${formatStatDelta(0, combatProjection.enemyHpDelta)}</span>`
 
   if (!existing) {
     cardEl.querySelector('.card__top')?.appendChild(badge)
   }
 }
 
+function createColumnMarkerEl(x, y) {
+  const el = document.createElement('div')
+  el.className = 'column-fight-marker'
+  el.innerHTML =
+    `<span class="column-fight-marker__emoji">${COLUMN_FIGHT_EMOJI}</span>` +
+    '<span class="column-fight-marker__order"></span>'
+  el.style.left = `${x}px`
+  el.style.top = `${y}px`
+  return el
+}
+
+function formatOrdinal(position) {
+  if (position === 1) return '1st'
+  if (position === 2) return '2nd'
+  if (position === 3) return '3rd'
+  return `${position}th`
+}
+
+function refreshColumnMarkers() {
+  const resolutionOrder = getResolutionOrder()
+  const orderBySlot = new Map(
+    resolutionOrder.map((slotIndex, idx) => [slotIndex, formatOrdinal(idx + 1)])
+  )
+
+  columnMarkerEls.forEach((markerEl, slotIndex) => {
+    if (!markerEl) return
+    const orderLabel = orderBySlot.get(slotIndex) ?? ''
+    markerEl.querySelector('.column-fight-marker__order').textContent = orderLabel
+  })
+}
+
 function updateCardPresentation(cardEl, card, combatProjection = null) {
   const summary = getBuffSummary(card)
   const effectiveValue = card.value + summary.total
 
-  updateValueCluster(cardEl, summary, effectiveValue)
-  setCardHpLabel(cardEl, card.hp)
+  updateStatsCluster(cardEl, card, summary, effectiveValue)
 
   const oldTooltip = cardEl.querySelector('.card__tooltip')
   const newTooltip = createCardTooltip(card, summary, effectiveValue, combatProjection)
@@ -224,12 +330,22 @@ function refreshVisibleCards() {
     const combatProjection = slotIndex >= 0 ? getCombatProjection(card, slotIndex) : null
     updateCardPresentation(cardEl, card, combatProjection)
   })
+
+  refreshColumnMarkers()
 }
 
 export function createCardEl(card, isEnemy = false) {
   const el = document.createElement('div')
   el.className = isEnemy ? 'card card--enemy' : 'card'
   el.dataset.id = card.id
+
+  el.addEventListener('mouseenter', () => {
+    el.classList.add('card--tooltip-active')
+  })
+
+  el.addEventListener('mouseleave', () => {
+    el.classList.remove('card--tooltip-active')
+  })
 
   el.style.width = CARD.width + 'px'
   el.style.height = CARD.height + 'px'
@@ -251,19 +367,33 @@ export function createCardEl(card, isEnemy = false) {
   name.className = 'card__name'
   name.textContent = card.name ?? ''
 
-  const valueCluster = document.createElement('div')
-  valueCluster.className = 'card__value-cluster'
+  const statsCluster = document.createElement('div')
+  statsCluster.className = 'card__stats-cluster'
 
-  const value = document.createElement('div')
-  value.className = 'card__value'
-  valueCluster.appendChild(value)
+  const stats = document.createElement('div')
+  stats.className = 'card__stats'
+
+  const attack = document.createElement('div')
+  attack.className = 'card__stat card__attack'
+
+  const separator = document.createElement('div')
+  separator.className = 'card__stat-separator'
+  separator.textContent = '/'
+
+  const hp = document.createElement('div')
+  hp.className = 'card__stat card__hp'
+
+  stats.appendChild(attack)
+  stats.appendChild(separator)
+  stats.appendChild(hp)
+  statsCluster.appendChild(stats)
 
   const role = document.createElement('div')
   role.className = `card__role card__role--${card.role ?? ''}`
   role.textContent = card.role ?? ''
 
   header.appendChild(name)
-  header.appendChild(valueCluster)
+  header.appendChild(statsCluster)
   top.appendChild(header)
   top.appendChild(role)
 
@@ -276,20 +406,14 @@ export function createCardEl(card, isEnemy = false) {
   rpsIcon.textContent = RPS_ICON[card.rps] ?? '?'
   mid.appendChild(rpsIcon)
 
-  // Bottom: effect text + HP
+  // Bottom: effect text
   const bot = document.createElement('div')
   bot.className = 'card__bot'
 
   const effect = document.createElement('div')
   effect.className = 'card__effect'
   effect.textContent = card.effectText ?? ''
-
-  const hp = document.createElement('div')
-  hp.className = 'card__hp'
-  hp.textContent = `♥\u202F${card.hp}`
-
   bot.appendChild(effect)
-  bot.appendChild(hp)
 
   el.appendChild(top)
   el.appendChild(mid)
@@ -386,6 +510,10 @@ function reorderColumns() {
         const cardY = gsap.getProperty(snappedCard, 'y') ?? 0
         gsap.to(snappedCard, { y: cardY + delta, duration: dur, ease })
       }
+    }
+
+    if (columnMarkerEls[i]) {
+      gsap.to(columnMarkerEls[i], { y: newY, duration: dur, ease })
     }
   }
 }
@@ -497,11 +625,18 @@ function init() {
 
   // Render enemy slots — store refs
   const enemySlotsContainer = document.getElementById('enemy-slots')
+  const markersContainer = document.getElementById('board')
   LAYOUT.enemySlots.forEach((slot, i) => {
     const el = createSlotEl({ ...slot, ...enemyPositions[i] }, 'enemy-slot')
     enemySlotsContainer.appendChild(el)
     enemySlotEls[i] = el
     enemyCardEls[i] = null
+
+    const markerX = enemyPositions[i].x + Math.round(CARD.width / 2)
+    const markerY = Math.round((enemyRowY + playerRowY + CARD.height) / 2)
+    const markerEl = createColumnMarkerEl(markerX, markerY)
+    markersContainer.appendChild(markerEl)
+    columnMarkerEls[i] = markerEl
   })
 
   // Render player slots — store refs
