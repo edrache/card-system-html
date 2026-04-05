@@ -38,6 +38,7 @@ with sync_playwright() as playwright:
         args=["--use-gl=angle", "--use-angle=swiftshader"],
     )
     page = browser.new_page(viewport={"width": 1440, "height": 1024})
+    page.add_init_script("Math.random = () => 0.2;")
 
     page_errors = []
     console_errors = []
@@ -77,6 +78,10 @@ with sync_playwright() as playwright:
     assert page.locator("#cards .card").nth(0).locator(".card__combat-badge").count() == 1
     assert "ME" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
     assert "EN" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
+    assert "card__combat-badge--lose" in (
+        page.locator("#cards .card[data-slot-id='slot-0'] .card__combat-badge").get_attribute("class") or ""
+    )
+    assert "\N{SKULL}" in page.locator("#cards .card[data-slot-id='slot-0'] .card__combat-badge").inner_text()
 
     page.locator("#cards .card").nth(0).hover()
     assert page.locator("#cards .card").nth(0).locator(".card__tooltip").count() == 1
@@ -86,6 +91,12 @@ with sync_playwright() as playwright:
     assert "Outcome:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
 
     drag_card_to_slot(page, 1, 1)
+    assert "card__combat-badge--lose" in (
+        page.locator("#cards .card[data-slot-id='slot-1'] .card__combat-badge").get_attribute("class") or ""
+    )
+    assert "\N{SKULL}" in page.locator("#cards .card[data-slot-id='slot-1'] .card__combat-badge").inner_text()
+    page.locator("#cards .card[data-slot-id='slot-1']").hover()
+    assert "TRADE" in page.locator("#cards .card[data-slot-id='slot-1'] .card__tooltip").inner_text()
     drag_card_to_slot(page, 2, 2)
 
     assert page.locator("#btn-resolve").is_enabled() is True

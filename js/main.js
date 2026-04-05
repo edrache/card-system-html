@@ -276,10 +276,14 @@ function updateCombatBadge(cardEl, combatProjection = null) {
     return
   }
 
+  const playerDies = combatProjection.playerAfterHp <= 0
+  const badgeOutcome = playerDies && combatProjection.outcome === 'trade' ? 'lose' : combatProjection.outcome
+  const meSkull = playerDies ? ' 💀' : ''
+
   const badge = existing ?? document.createElement('div')
-  badge.className = `card__combat-badge card__combat-badge--${combatProjection.outcome}`
+  badge.className = `card__combat-badge card__combat-badge--${badgeOutcome}`
   badge.innerHTML =
-    `<span class="card__combat-badge-line">ME ${formatStatDelta(0, combatProjection.playerHpDelta)}</span>` +
+    `<span class="card__combat-badge-line">ME ${formatStatDelta(0, combatProjection.playerHpDelta)}${meSkull}</span>` +
     `<span class="card__combat-badge-line">EN ${formatStatDelta(0, combatProjection.enemyHpDelta)}</span>`
 
   if (!existing) {
@@ -845,6 +849,8 @@ async function finalizeCombatFlow() {
   )
 
   await waitForMs(220)
+
+  document.querySelectorAll('.slot:not(.enemy-slot)').forEach((el) => el.classList.remove('slot--occupied'))
 
   const result = finalizeResolveRound(combatFlowState.log)
   const drawnCards = result.outcome === 'continue' ? drawCards() : []

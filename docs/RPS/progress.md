@@ -218,6 +218,15 @@ Columns (enemy slot + player slot pair) are sorted by enemy strength each round:
   - base value + active buffs shown as the current value
   - modified values get a highlighted circular badge and `+N` delta chip
   - hover tooltip lists base value, every active modifier source, buff-cap reduction (if any), and current HP
+
+## 2026-04-05 Combat Badge Death-State Verification
+
+- Verified the UI behavior requested for player-card death states in the combat badge:
+  - `Lose` remains red and shows a skull next to the `ME +0/-Y` line
+  - `Trade` keeps the tooltip/result label as `TRADE`, but the badge switches to the red lose styling when the player card dies
+- Made `tests/rps_browser_smoke.py` deterministic (`Math.random = () => 0.2`) so the smoke run now covers both cases in one pass:
+  - slot 0 produces a true `LOSE` preview with player death
+  - slot 1 produces a `TRADE` preview where both cards die, and the badge still renders red with a skull on the `ME` line
 - Browser smoke extended to assert the new value badge + tooltip DOM is present after card placement.
 - Module smoke extended to verify:
   - support adjacency buffs are applied
