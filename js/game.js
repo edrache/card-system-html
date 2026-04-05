@@ -14,9 +14,11 @@ export const gameState = {
 
   playerDeck: [],           // Card[] — cards not yet in hand or on board
   playerHand: [],           // Card[] — cards in hand (available to place)
+  playerCemetery: [],       // Card[] — permanently lost player cards
   playerBoard: [],          // (Card|null)[] — length = SLOT_COUNT
 
   enemyDeck: [],            // Card[] — enemy's remaining draw pile
+  enemyCemetery: [],        // Card[] — permanently lost enemy cards
   enemyBoard: [],           // (Card|null)[] — length = SLOT_COUNT
 
   placementOrder: [],       // Card[] — tracks order cards were placed (for first-card bonus)
@@ -40,6 +42,20 @@ function markCardAsGhost(card) {
   return card
 }
 
+function moveCardToPlayerCemetery(card) {
+  if (!card) return
+  clearBuffSourcesByScope(card, 'temporary')
+  syncCardBuffs(card)
+  gameState.playerCemetery.push(card)
+}
+
+function moveCardToEnemyCemetery(card) {
+  if (!card) return
+  clearBuffSourcesByScope(card, 'temporary')
+  syncCardBuffs(card)
+  gameState.enemyCemetery.push(card)
+}
+
 function expireExistingGhosts(board, existingGhostIds) {
   for (let slotIndex = 0; slotIndex < board.length; slotIndex += 1) {
     const card = board[slotIndex]
@@ -47,6 +63,15 @@ function expireExistingGhosts(board, existingGhostIds) {
 
     card.ghostBufferTurns = Math.max(0, (card.ghostBufferTurns ?? 0) - 1)
     if (card.ghostBufferTurns <= 0) {
+      if (board === gameState.playerBoard) {
+        card.ghostBuffer = false
+        card.ghostBufferTurns = 0
+        moveCardToPlayerCemetery(card)
+      } else if (board === gameState.enemyBoard) {
+        card.ghostBuffer = false
+        card.ghostBufferTurns = 0
+        moveCardToEnemyCemetery(card)
+      }
       board[slotIndex] = null
       continue
     }
@@ -84,6 +109,7 @@ function getAllCardsInState() {
     gameState.playerHand,
     gameState.playerBoard,
     gameState.enemyDeck,
+    gameState.enemyCemetery,
     gameState.enemyBoard,
   ]
 
@@ -223,8 +249,10 @@ export function syncDerivedState() {
 export function initRun() {
   gameState.playerDeck = shuffleDeck(createDeck())
   gameState.playerHand = []
+  gameState.playerCemetery = []
   gameState.playerBoard = Array(GAME.SLOT_COUNT).fill(null)
   gameState.enemyDeck = createEnemyDeck()
+  gameState.enemyCemetery = []
   gameState.enemyBoard = Array(GAME.SLOT_COUNT).fill(null)
   gameState.placementOrder = []
   gameState.rewardChoices = []
@@ -308,13 +336,16 @@ export function unplaceCard(slotIndex) {
 }
 
 /**
- * Returns true when all player slots are filled and combat can be triggered.
+ * Returns true when placement is complete and the player has no more moves.
+ * Combat can start either when all slots are filled or when the hand is empty.
  */
 export function canResolve() {
-  return (
-    gameState.phase === 'placement' &&
-    gameState.playerBoard.every(slot => slot !== null)
-  )
+  if (gameState.phase !== 'placement') return false
+
+  const allSlotsFilled = gameState.playerBoard.every((slot) => slot !== null)
+  const handIsEmpty = gameState.playerHand.length === 0
+
+  return allSlotsFilled || handIsEmpty
 }
 
 // ── Combat phase ──────────────────────────────────────────────────────────────
@@ -423,12 +454,22 @@ export function finalizeResolveRound(log = []) {
   for (let i = 0; i < GAME.SLOT_COUNT; i++) {
     const playerCard = gameState.playerBoard[i]
     if (playerCard?.hp <= 0 && !isGhostCard(playerCard)) {
-      gameState.playerBoard[i] = canPersistAsGhost(playerCard) ? markCardAsGhost(playerCard) : null
+      if (canPersistAsGhost(playerCard)) {
+        gameState.playerBoard[i] = markCardAsGhost(playerCard)
+      } else {
+        moveCardToPlayerCemetery(playerCard)
+        gameState.playerBoard[i] = null
+      }
     }
 
     const enemyCard = gameState.enemyBoard[i]
     if (enemyCard?.hp <= 0 && !isGhostCard(enemyCard)) {
-      gameState.enemyBoard[i] = canPersistAsGhost(enemyCard) ? markCardAsGhost(enemyCard) : null
+      if (canPersistAsGhost(enemyCard)) {
+        gameState.enemyBoard[i] = markCardAsGhost(enemyCard)
+      } else {
+        moveCardToEnemyCemetery(enemyCard)
+        gameState.enemyBoard[i] = null
+      }
     }
   }
 

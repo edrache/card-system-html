@@ -148,6 +148,7 @@ function findPlayerCardById(cardId) {
     ...gameState.playerHand,
     ...gameState.playerBoard,
     ...gameState.playerDeck,
+    ...gameState.playerCemetery,
   ]
 
   return playerCards.find((card) => card?.id === cardId) ?? null
@@ -157,6 +158,7 @@ function findEnemyCardById(cardId) {
   const enemyCards = [
     ...gameState.enemyBoard,
     ...gameState.enemyDeck,
+    ...gameState.enemyCemetery,
   ]
 
   return enemyCards.find((card) => card?.id === cardId) ?? null
@@ -396,8 +398,10 @@ function updateDeckButton(buttonId, countId, deckSize) {
 }
 
 function renderDeckButtons() {
-  updateDeckButton('player-deck-button', 'player-deck-count', gameState.playerDeck.length)
   updateDeckButton('enemy-deck-button', 'enemy-deck-count', gameState.enemyDeck.length)
+  updateDeckButton('enemy-cemetery-button', 'enemy-cemetery-count', gameState.enemyCemetery.length)
+  updateDeckButton('player-deck-button', 'player-deck-count', gameState.playerDeck.length)
+  updateDeckButton('player-cemetery-button', 'player-cemetery-count', gameState.playerCemetery.length)
 }
 
 function createDeckListItem(card, index) {
@@ -442,17 +446,29 @@ function createDeckListItem(card, index) {
   return item
 }
 
-function showDeckOverlay(ownerLabel, deck) {
+function showDeckOverlay(ownerLabel, deck, options = {}) {
+  const {
+    collectionLabel = 'Deck',
+    description = `${formatDeckCount(deck.length)} remaining in draw order.`,
+    emptyMessage = 'This deck is empty.',
+    note = '',
+  } = options
+
+  const noteMarkup = note
+    ? `<div class="deck-overlay__note">${note}</div>`
+    : ''
+
   showOverlay(
     '<div class="overlay-content overlay-content--deck" role="dialog" aria-modal="true" aria-labelledby="deck-overlay-title">' +
     '<div class="deck-overlay__header">' +
     '<div>' +
     `<div class="deck-overlay__eyebrow">${ownerLabel}</div>` +
-    `<h2 id="deck-overlay-title">${ownerLabel} Deck</h2>` +
-    `<p>${formatDeckCount(deck.length)} remaining in draw order.</p>` +
+    `<h2 id="deck-overlay-title">${ownerLabel} ${collectionLabel}</h2>` +
+    `<p>${description}</p>` +
     '</div>' +
     '<button id="deck-overlay-close" class="deck-overlay__close" type="button" aria-label="Close deck view">Close</button>' +
     '</div>' +
+    noteMarkup +
     '<div id="deck-overlay-list" class="deck-overlay__list"></div>' +
     '</div>'
   )
@@ -463,7 +479,7 @@ function showDeckOverlay(ownerLabel, deck) {
   if (deck.length === 0) {
     const empty = document.createElement('div')
     empty.className = 'deck-overlay__empty'
-    empty.textContent = 'This deck is empty.'
+    empty.textContent = emptyMessage
     list.appendChild(empty)
   } else {
     deck.forEach((card, index) => {
@@ -475,13 +491,32 @@ function showDeckOverlay(ownerLabel, deck) {
 }
 
 function bindDeckButtons() {
+  document.getElementById('enemy-deck-button')?.addEventListener('click', () => {
+    showDeckOverlay('Opponent', gameState.enemyDeck)
+  })
+
+  document.getElementById('enemy-cemetery-button')?.addEventListener('click', () => {
+    showDeckOverlay('Opponent', gameState.enemyCemetery, {
+      collectionLabel: 'Cemetery',
+      description: `${formatDeckCount(gameState.enemyCemetery.length)} lost so far.`,
+      emptyMessage: 'No enemy cards have been lost yet.',
+      note: 'Cards in the Cemetery are lost for this encounter set. Future mechanics may let you recover them.',
+    })
+  })
+
   document.getElementById('player-deck-button')?.addEventListener('click', () => {
     showDeckOverlay('Player', gameState.playerDeck)
   })
 
-  document.getElementById('enemy-deck-button')?.addEventListener('click', () => {
-    showDeckOverlay('Opponent', gameState.enemyDeck)
+  document.getElementById('player-cemetery-button')?.addEventListener('click', () => {
+    showDeckOverlay('Player', gameState.playerCemetery, {
+      collectionLabel: 'Cemetery',
+      description: `${formatDeckCount(gameState.playerCemetery.length)} lost so far.`,
+      emptyMessage: 'No cards have been lost yet.',
+      note: 'Cards in the Cemetery are lost for this run. Future mechanics may let you recover them.',
+    })
   })
+
 }
 
 // ── Round result handling ─────────────────────────────────────────────────────
@@ -905,9 +940,13 @@ function buildTextState() {
     phase: gameState.phase,
     round: gameState.round,
     playerDeckCount: gameState.playerDeck.length,
+    playerCemeteryCount: gameState.playerCemetery.length,
     enemyDeckCount: gameState.enemyDeck.length,
+    enemyCemeteryCount: gameState.enemyCemetery.length,
     playerDeck: gameState.playerDeck.map(serializeCardForText),
+    playerCemetery: gameState.playerCemetery.map(serializeCardForText),
     enemyDeck: gameState.enemyDeck.map(serializeCardForText),
+    enemyCemetery: gameState.enemyCemetery.map(serializeCardForText),
     playerHand: gameState.playerHand.map(serializeCardForText),
     playerBoard: gameState.playerBoard.map(serializeCardForText),
     enemyBoard: gameState.enemyBoard.map(serializeCardForText),

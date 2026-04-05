@@ -79,12 +79,16 @@ with sync_playwright() as playwright:
     assert page.locator(".column-fight-marker").count() == 3
     assert page.locator(".column-fight-marker__order").count() == 3
     assert page.locator("#btn-resolve").is_enabled() is False
-    assert page.locator("#player-deck-button").count() == 1
     assert page.locator("#enemy-deck-button").count() == 1
+    assert page.locator("#enemy-cemetery-button").count() == 1
+    assert page.locator("#player-deck-button").count() == 1
+    assert page.locator("#player-cemetery-button").count() == 1
 
     initial_state = get_text_state(page)
     assert initial_state["playerDeckCount"] == 7
+    assert initial_state["playerCemeteryCount"] == 0
     assert initial_state["enemyDeckCount"] == 7
+    assert initial_state["enemyCemeteryCount"] == 0
     assert [card["id"] for card in initial_state["playerDeck"]] != BASE_DECK_ORDER[:7]
     player_deck_count_text = page.locator("#player-deck-count").inner_text()
     enemy_deck_count_text = page.locator("#enemy-deck-count").inner_text()
@@ -104,6 +108,20 @@ with sync_playwright() as playwright:
     page.locator("#enemy-deck-button").click()
     assert page.locator("#deck-overlay-title").inner_text() == "Opponent Deck"
     assert page.locator(".deck-list-item").count() == 7
+    page.locator("#deck-overlay-close").click()
+    assert page.locator("#overlay.hidden").count() == 1
+
+    page.locator("#enemy-cemetery-button").click()
+    assert page.locator("#deck-overlay-title").inner_text() == "Opponent Cemetery"
+    assert page.locator(".deck-overlay__note").inner_text().startswith("Cards in the Cemetery are lost")
+    assert page.locator(".deck-overlay__empty").inner_text() == "No enemy cards have been lost yet."
+    page.locator("#deck-overlay-close").click()
+    assert page.locator("#overlay.hidden").count() == 1
+
+    page.locator("#player-cemetery-button").click()
+    assert page.locator("#deck-overlay-title").inner_text() == "Player Cemetery"
+    assert page.locator(".deck-overlay__note").inner_text().startswith("Cards in the Cemetery are lost")
+    assert page.locator(".deck-overlay__empty").inner_text() == "No cards have been lost yet."
     page.locator("#deck-overlay-close").click()
     assert page.locator("#overlay.hidden").count() == 1
 
