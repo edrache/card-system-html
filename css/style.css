@@ -76,6 +76,10 @@ body {
   pointer-events: auto;
 }
 
+#cards.cards--locked .card {
+  pointer-events: none;
+}
+
 /* ── HUD ────────────────────────────────────────────────── */
 
 #hud {
@@ -153,6 +157,15 @@ body {
 
 .card--tooltip-active {
   z-index: 80 !important;
+}
+
+.card--resolving {
+  z-index: 65 !important;
+}
+
+.card--destroyed {
+  transform-origin: 50% 80%;
+  filter: saturate(0.72);
 }
 
 .card:active {
@@ -520,6 +533,41 @@ body {
   text-transform: uppercase;
 }
 
+.card__resolution-note {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 7px 8px 8px;
+  border-radius: 10px;
+  background: oklch(15% 0.03 250 / 0.92);
+  border: 1px solid oklch(82% 0.03 85 / 0.18);
+  box-shadow: 0 10px 22px oklch(6% 0.02 250 / 0.24);
+  pointer-events: none;
+}
+
+.card__resolution-note--survived {
+  color: oklch(90% 0.04 145);
+}
+
+.card__resolution-note--destroyed {
+  color: oklch(90% 0.05 26);
+}
+
+.card__resolution-title {
+  font-family: 'IM Fell English SC', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card__resolution-line {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+}
+
 .column-fight-marker {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -555,6 +603,15 @@ body {
   text-transform: uppercase;
 }
 
+.column-fight-marker--active {
+  background: oklch(32% 0.08 152 / 0.84);
+  border-color: oklch(82% 0.12 85 / 0.38);
+  box-shadow:
+    0 0 26px oklch(76% 0.12 85 / 0.22),
+    0 10px 24px oklch(5% 0.03 152 / 0.2),
+    inset 0 0 0 1px oklch(100% 0 0 / 0.12);
+}
+
 /* ── Slots ──────────────────────────────────────────────── */
 
 .slot {
@@ -581,6 +638,14 @@ body {
 .slot--occupied {
   border-style: solid;
   opacity: 0.28;
+}
+
+.slot--resolving {
+  border-style: solid;
+  border-color: oklch(82% 0.14 85) !important;
+  box-shadow:
+    0 0 24px 6px oklch(82% 0.14 85 / 0.3),
+    inset 0 0 18px oklch(82% 0.14 85 / 0.08);
 }
 
 /* ── RPS slot highlights (Phase 6) ─────────────────────── */

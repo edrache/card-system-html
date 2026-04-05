@@ -241,6 +241,50 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 
 ---
 
+## 2026-04-05 Slow resolve flow
+
+- Reworked round resolution into a staged flow in `js/game.js`:
+  - `prepareResolveRound()` locks the board and captures fight order
+  - `resolveCombatStep(slotIndex)` resolves exactly one pair
+  - `finalizeResolveRound()` applies cleanup / return-to-hand / enemy refill
+  - `resolveRound()` still exists as a compatibility wrapper for logic tests
+- Rebuilt `Resolve` UX in `js/main.js`:
+  - first click starts combat and immediately resolves only the first fight
+  - the same button becomes `Continue` for the next fight
+  - already-resolved slots stop showing projected combat badges
+  - player hand is interaction-locked during the staged combat flow
+- Added step-readability feedback in `css/style.css` + `js/main.js`:
+  - active slot pair gets a dedicated resolve highlight
+  - each resolved card shows a short note (`Stays` / `Destroyed`, HP delta, dealt damage)
+  - destroyed cards tilt to `30deg` and stay visibly "broken" until cleanup
+- Added end-of-round transition animation:
+  - surviving player cards animate from board back into the hand
+  - newly drawn player cards animate in from the bottom-center draw origin
+  - newly spawned enemy cards animate in from the top-center draw origin
+  - column reordering still runs after the cleanup animation settles
+- Extended browser smoke coverage in `tests/rps_browser_smoke.py`:
+  - asserts `Resolve -> Continue`
+  - verifies first-fight UI state before cleanup
+  - clicks through all three fights and confirms only then the game advances to `Round 2`
+- New visual smoke artifact:
+  - `output/browser-smoke/after-first-fight.png`
+
+**Verified on 2026-04-05**
+- `node tests/game-logic-smoke.mjs`
+- `python3 tests/rps_browser_smoke.py`
+
+**Potential follow-up**
+- The per-fight note currently overlaps the lower part of the card art by design. If we want a more minimal combat readout later, this is the first place to simplify.
+
+## 2026-04-05 Documentation sync
+
+- Updated `README.md` so the public repo description now matches the staged combat flow shipped in this branch.
+- `Current Prototype` now explicitly describes `Resolve -> Continue -> cleanup`.
+- README test notes now mention the first-fight staged UI and new visual artifact `after-first-fight.png`.
+- README open work now includes the possible follow-up to reduce the visual weight of the per-fight result note.
+
+---
+
 ## 2026-04-05 ATK / HP split branch
 
 - Created branch `feature/rps-atk-hp-split` for the stat-clarity pass.

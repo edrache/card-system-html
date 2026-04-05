@@ -13,6 +13,19 @@ export function syncResolveButton() {
   const btn = document.getElementById('btn-resolve')
   if (!btn) return
   btn.disabled = !canResolve()
+  btn.textContent = 'Resolve'
+}
+
+export function setResolveButtonLabel(label) {
+  const btn = document.getElementById('btn-resolve')
+  if (!btn) return
+  btn.textContent = label
+}
+
+export function setResolveButtonDisabled(disabled) {
+  const btn = document.getElementById('btn-resolve')
+  if (!btn) return
+  btn.disabled = disabled
 }
 
 // ── HP labels on cards ────────────────────────────────────────────────────────

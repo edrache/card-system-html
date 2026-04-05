@@ -95,13 +95,52 @@ with sync_playwright() as playwright:
     page.screenshot(path=str(OUTPUT_DIR / "after-placement.png"), full_page=True)
 
     page.locator("#btn-resolve").click()
-    page.wait_for_timeout(1000)
+    page.wait_for_function(
+        """() => {
+            const btn = document.querySelector('#btn-resolve');
+            return btn && btn.textContent === 'Continue' && !btn.disabled;
+        }""",
+        timeout=3000,
+    )
+
+    assert page.locator("#round-counter").inner_text() == "Round 1"
+    assert page.locator("#btn-resolve").inner_text() == "Continue"
+    assert page.locator("#btn-resolve").is_enabled() is True
+    assert page.locator(".card__resolution-note").count() == 2
+    assert page.locator(".slot--resolving").count() == 2
+
+    page.screenshot(path=str(OUTPUT_DIR / "after-first-fight.png"), full_page=True)
+
+    page.locator("#btn-resolve").click()
+    page.wait_for_function(
+        """() => {
+            const btn = document.querySelector('#btn-resolve');
+            return btn && btn.textContent === 'Continue' && !btn.disabled;
+        }""",
+        timeout=3000,
+    )
+
+    assert page.locator("#round-counter").inner_text() == "Round 1"
+    assert page.locator("#btn-resolve").inner_text() == "Continue"
+    assert page.locator("#btn-resolve").is_enabled() is True
+
+    page.locator("#btn-resolve").click()
+    page.wait_for_function(
+        """() => {
+            const btn = document.querySelector('#btn-resolve');
+            const round = document.querySelector('#round-counter');
+            return btn && round && btn.textContent === 'Resolve' && btn.disabled && round.textContent === 'Round 2';
+        }""",
+        timeout=5000,
+    )
 
     assert page.locator("#round-counter").inner_text() == "Round 2"
+    assert page.locator("#btn-resolve").inner_text() == "Resolve"
     assert page.locator("#btn-resolve").is_enabled() is False
     assert page.locator("#cards .card").count() == 3
     assert page.locator("#enemy-cards .card").count() == 3
     assert page.locator("#cards .card[data-slot-id]").count() == 0
+    assert page.locator(".card__resolution-note").count() == 0
     assert page.locator("#overlay.hidden").count() == 1
     assert page_errors == []
     assert console_errors == []

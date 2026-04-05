@@ -13,4 +13,8 @@ export const ANIM = {
   wiggleCount: 1,            // number of back-and-forth oscillations in the wiggle
   wiggleDuration: 0.03,      // duration of a single wiggle step in seconds
   wiggleEase: 'sine.inOut',  // easing for each wiggle step (GSAP easing string)
+  resolveFlashDuration: 0.45, // reveal duration for a single combat result
+  resolvePauseDuration: 0.22, // short settle time before Continue becomes active
+  resolveTiltAngle: 30,       // destroyed cards lean to make the loss readable
+  cleanupDuration: 0.55,      // board-to-hand / refill transition duration
 }

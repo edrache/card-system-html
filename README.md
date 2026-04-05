@@ -10,9 +10,12 @@ Each round works like this:
 
 1. Draw up to 3 player cards.
 2. Place all 3 cards into the player row.
-3. Compare each player card against the enemy card in the same column.
-4. Resolve combat in ranked enemy order.
-5. Surviving player cards return to hand, enemy refills, next round begins.
+3. Click `Resolve` to start combat.
+4. Combat plays one ranked column at a time.
+5. The same button becomes `Continue` for the next fight.
+6. Each fight shows which card stays, how its HP changed, and which card was destroyed.
+7. Destroyed cards tilt to show the loss before cleanup.
+8. Surviving player cards return to hand, missing cards are drawn, enemy refills, next round begins.
 
 ## Card Readability
 
@@ -27,6 +30,14 @@ When a card is placed:
 - the card shows a compact per-side projected result badge
 - hover shows the full combat breakdown
 - the center marker between rows shows the real `Resolve` order for that column
+
+When a round is resolved:
+
+- only one fight is shown at a time
+- the active column gets a dedicated highlight
+- each resolved card gets a short result note
+- already-resolved columns stop showing projected combat badges
+- the hand is locked until the staged resolve is finished
 
 The tooltip system is designed to answer:
 
@@ -53,6 +64,9 @@ The tooltip system is designed to answer:
 - Enemy refill after each round
 - Column reordering by enemy strength
 - Resolve-order markers (`⚔️`, `1st/2nd/3rd`)
+- Staged `Resolve -> Continue` combat flow
+- Per-fight survival / destruction notes
+- End-of-round return-to-hand and refill animations
 - Provenance-aware tooltips for buffs and combat
 
 ## Getting Started
@@ -88,15 +102,24 @@ The browser smoke verifies:
 - page loads without runtime errors
 - cards can be dragged into all 3 slots
 - `Resolve` enables correctly
+- `Resolve` becomes `Continue` after the first fight
+- first-fight staged resolve UI appears
 - hover UI renders
 - enemy tooltip opens below the enemy card
-- post-combat rerender succeeds
+- post-combat rerender succeeds only after all fights finish
 
 Artifacts are written to:
 
 ```text
 output/browser-smoke/
 ```
+
+Key visual checkpoints include:
+
+- `before-placement.png`
+- `after-placement.png`
+- `after-first-fight.png`
+- `after-resolve.png`
 
 ## Configuration
 
@@ -148,3 +171,4 @@ Still incomplete:
 - `Persistent Buffer` ghost behavior after death
 - RPS slot highlight colors during drag
 - reward screen / run progression beyond a single encounter
+- possible lighter treatment for the per-fight result note if it feels too heavy on card art

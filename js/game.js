@@ -1,7 +1,7 @@
 import { GAME } from '../config/game.config.js'
 import { createDeck } from './cards-data.js'
 import { addBuffSource, clearBuffSourcesByScope, ensureBuffState, syncCardBuffs } from './buffs.js'
-import { resolvePair, getAdjacentAllies, getRpsResult } from './combat.js'
+import { calcDamage, resolvePair, getAdjacentAllies, getRpsResult } from './combat.js'
 import { createEnemyDeck, enemyRefillBoard } from './enemy.js'
 
 /**
@@ -190,15 +190,20 @@ export function resetRun() {
  * Surviving cards from previous round should already be in playerHand before calling.
  */
 export function drawCards() {
+  const drawnCards = []
+
   while (
     gameState.playerHand.length < GAME.SLOT_COUNT &&
     gameState.playerDeck.length > 0
   ) {
-    gameState.playerHand.push(gameState.playerDeck.shift())
+    const drawnCard = gameState.playerDeck.shift()
+    gameState.playerHand.push(drawnCard)
+    drawnCards.push(drawnCard)
   }
   gameState.phase = 'placement'
   gameState.placementOrder = []
   recalculateBoardBuffs()
+  return drawnCards
 }
 
 // ── Placement phase ───────────────────────────────────────────────────────────
@@ -256,36 +261,97 @@ export function canResolve() {
 // ── Combat phase ──────────────────────────────────────────────────────────────
 
 /**
- * Resolves all slot pairs, applies damage, runs death check, refills boards.
- * Returns a log of what happened for UI display.
+ * Builds a preview for one combat pair without mutating cards.
  */
-export function resolveRound() {
+function buildCombatStep(slotIndex) {
+  const player = gameState.playerBoard[slotIndex]
+  const enemy = gameState.enemyBoard[slotIndex]
+
+  if (!player || !enemy) {
+    return { slot: slotIndex, skipped: true }
+  }
+
+  const playerDealt = calcDamage(player, enemy)
+  const enemyDealt = calcDamage(enemy, player)
+  const playerHpAfter = Math.max(0, player.hp - enemyDealt)
+  const enemyHpAfter = Math.max(0, enemy.hp - playerDealt)
+
+  return {
+    slot: slotIndex,
+    player: {
+      id: player.id,
+      name: player.name,
+      dealt: playerDealt,
+      hpBefore: player.hp,
+      hpAfter: playerHpAfter,
+      died: playerHpAfter <= 0,
+    },
+    enemy: {
+      id: enemy.id,
+      name: enemy.name,
+      dealt: enemyDealt,
+      hpBefore: enemy.hp,
+      hpAfter: enemyHpAfter,
+      died: enemyHpAfter <= 0,
+    },
+  }
+}
+
+/**
+ * Locks the round into combat mode and returns the fight order with previews.
+ */
+export function prepareResolveRound() {
   if (!canResolve()) return null
 
   gameState.phase = 'combat'
   recalculateBoardBuffs()
-  const log = []
   const resolutionOrder = getResolutionOrder()
 
-  // Resolve each slot pair
-  for (const i of resolutionOrder) {
-    const player = gameState.playerBoard[i]
-    const enemy = gameState.enemyBoard[i]
-
-    if (!player || !enemy) {
-      log.push({ slot: i, skipped: true })
-      continue
-    }
-
-    const result = resolvePair(player, enemy)
-    log.push({
-      slot: i,
-      player: { id: player.id, name: player.name, dealt: result.aDealt, died: result.aDied, hp: player.hp },
-      enemy: { id: enemy.id, name: enemy.name, dealt: result.bDealt, died: result.bDied, hp: enemy.hp },
-    })
+  return {
+    resolutionOrder,
+    steps: resolutionOrder.map((slotIndex) => buildCombatStep(slotIndex)),
   }
+}
 
-  console.log('[Round', gameState.round, 'results]', log)
+/**
+ * Resolves exactly one slot pair and mutates the board state in place.
+ */
+export function resolveCombatStep(slotIndex) {
+  const preview = buildCombatStep(slotIndex)
+  if (preview.skipped) return preview
+
+  const player = gameState.playerBoard[slotIndex]
+  const enemy = gameState.enemyBoard[slotIndex]
+  const result = resolvePair(player, enemy)
+
+  return {
+    slot: slotIndex,
+    player: {
+      id: player.id,
+      name: player.name,
+      dealt: result.aDealt,
+      hpBefore: preview.player.hpBefore,
+      hp: Math.max(0, player.hp),
+      hpAfter: Math.max(0, player.hp),
+      died: result.aDied,
+    },
+    enemy: {
+      id: enemy.id,
+      name: enemy.name,
+      dealt: result.bDealt,
+      hpBefore: preview.enemy.hpBefore,
+      hp: Math.max(0, enemy.hp),
+      hpAfter: Math.max(0, enemy.hp),
+      died: result.bDied,
+    },
+  }
+}
+
+/**
+ * Applies death cleanup, returns survivors, refills enemy board, and advances the round.
+ */
+export function finalizeResolveRound(log = []) {
+  if (gameState.phase !== 'combat') return null
 
   // Death check — remove dead cards
   for (let i = 0; i < GAME.SLOT_COUNT; i++) {
@@ -326,4 +392,20 @@ export function resolveRound() {
 
   gameState.phase = 'draw'
   return { log, outcome: 'continue' }
+}
+
+/**
+ * Resolves all slot pairs, applies damage, runs death check, refills boards.
+ * Returns a log of what happened for UI display.
+ */
+export function resolveRound() {
+  const prepared = prepareResolveRound()
+  if (!prepared) return null
+
+  const log = prepared.steps.map((step) => (
+    step.skipped ? step : resolveCombatStep(step.slot)
+  ))
+
+  console.log('[Round', gameState.round, 'results]', log)
+  return finalizeResolveRound(log)
 }
