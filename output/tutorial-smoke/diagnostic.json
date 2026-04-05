@@ -1,0 +1,24 @@
+{
+  "steps": [
+    {
+      "progress": "Step 1 / 25",
+      "tooltip": "Welcome to the tutorial.\n\nThis is the game board. Your side is at the bottom, and the enemy is at the top. Each round you place cards and resolve combat."
+    },
+    {
+      "progress": "Step 2 / 25",
+      "tooltip": "This is a card.\n\nName is at the top. The center shows the RPS symbol and value. The bottom shows role and HP. Special effects appear as extra text."
+    },
+    {
+      "progress": "Step 3 / 25",
+      "tooltip": "Rock \u270a beats Scissors \u270c\ufe0f.\nScissors \u270c\ufe0f beats Paper \u270b.\nPaper \u270b beats Rock \u270a.\n\nWinning the RPS matchup gives +3 damage. Losing costs -3."
+    },
+    {
+      "progress": "Step 4 / 25",
+      "tooltip": "Try it. Drag the card onto the slot to place it."
+    }
+  ],
+  "page_errors": [],
+  "console_errors": [],
+  "card_count": 1,
+  "enemy_count": 0
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2d4f30" />
+  <title>Tutorial - Card System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IM+Fell+English+SC&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/tutorial.css" />
+</head>
+<body>
+  <div id="board">
+    <div class="board-emblem">Tutorial</div>
+
+    <div id="enemy-board">
+      <div id="enemy-slots"></div>
+      <div id="enemy-cards"></div>
+    </div>
+
+    <div id="player-board">
+      <div id="slots"></div>
+      <div id="cards"></div>
+    </div>
+
+    <div id="hud">
+      <div id="round-counter">Round 1</div>
+      <button id="btn-resolve" disabled>Resolve</button>
+    </div>
+
+    <div id="overlay" class="hidden"></div>
+  </div>
+
+  <div id="tutorial-progress">
+    <div id="tutorial-progress-fill"></div>
+    <span id="tutorial-progress-label">Step 1 / 25</span>
+  </div>
+
+  <div id="tutorial-tooltip" class="hidden">
+    <p id="tutorial-tooltip-text"></p>
+    <button id="tutorial-next-btn" class="hidden">Next -&gt;</button>
+  </div>
+
+  <div id="tutorial-chapter-banner" class="hidden">
+    <div id="tutorial-chapter-text"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+  <script type="module" src="js/tutorial.js"></script>
+</body>
+</html>

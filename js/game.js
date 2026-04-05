@@ -154,17 +154,15 @@ function recalculateBoardBuffs() {
   clearTemporaryBuffs()
   applyFirstCardBonus()
   applySupportPlacementBuffs(gameState.playerBoard, 'player')
+  applySupportPlacementBuffs(gameState.enemyBoard, 'enemy')
   getAllCardsInState().forEach((card) => syncCardBuffs(card))
 }
 
 /**
- * Recalculates support placement buffs for the enemy board only.
- * Called after the enemy fills its board (initRun, finalizeResolveRound).
- * Kept separate so that player placement actions never re-apply enemy buffs.
+ * Recalculates derived buffs after the enemy board changes.
  */
 function recalculateEnemyBuffs() {
-  applySupportPlacementBuffs(gameState.enemyBoard, 'enemy')
-  gameState.enemyBoard.forEach((card) => { if (card) syncCardBuffs(card) })
+  recalculateBoardBuffs()
 }
 
 // ── Initialisation ────────────────────────────────────────────────────────────

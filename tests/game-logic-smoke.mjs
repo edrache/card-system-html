@@ -10,6 +10,7 @@ import {
   placeCard,
   unplaceCard,
   canResolve,
+  prepareResolveRound,
   resolveRound,
 } from '../js/game.js'
 
@@ -44,6 +45,14 @@ assert.equal(
     { rps: 'scissors', value: 4, buffs: 1, role: 'defense', effect: null }
   ).finalDamage,
   9
+)
+
+assert.equal(
+  getDamageBreakdown(
+    { rps: 'rock', value: 6, buffs: 0, role: 'support', effect: null },
+    { rps: 'rock', value: 6, hp: 2, buffs: 0, role: 'defense', effect: null }
+  ).reduction,
+  1
 )
 
 assert.deepEqual(
@@ -101,6 +110,31 @@ assert.equal(gameState.playerBoard[0].buffs, 1)
 assert.equal(gameState.playerBoard[2].buffs, 1)
 assert.equal(
   getBuffSummary(gameState.playerBoard[0]).sources.some((source) => source.label === 'Buffer support'),
+  true
+)
+
+gameState.phase = 'placement'
+gameState.round = 1
+gameState.playerDeck = []
+gameState.playerHand = []
+gameState.playerBoard = [
+  makeCard({ id: 'front-left', name: 'Front Left', rps: 'rock', value: 4, role: 'attack', hp: 4 }),
+  makeCard({ id: 'front-mid', name: 'Front Mid', rps: 'paper', value: 4, role: 'attack', hp: 4 }),
+  makeCard({ id: 'front-right', name: 'Front Right', rps: 'scissors', value: 4, role: 'attack', hp: 4 }),
+]
+gameState.enemyDeck = []
+gameState.enemyBoard = [
+  makeCard({ id: 'enemy-front-left', name: 'Enemy Front Left', rps: 'paper', value: 4, role: 'attack', hp: 4 }),
+  makeCard({ id: 'enemy-buffer', name: 'Enemy Buffer', rps: 'rock', value: 3, role: 'support', hp: 3 }),
+  makeCard({ id: 'enemy-front-right', name: 'Enemy Front Right', rps: 'scissors', value: 4, role: 'attack', hp: 4 }),
+]
+gameState.placementOrder = [...gameState.playerBoard]
+
+prepareResolveRound()
+assert.equal(gameState.enemyBoard[0].buffs, 1)
+assert.equal(gameState.enemyBoard[2].buffs, 1)
+assert.equal(
+  getBuffSummary(gameState.enemyBoard[0]).sources.some((source) => source.label === 'Enemy Buffer support'),
   true
 )
 

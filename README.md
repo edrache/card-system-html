@@ -28,6 +28,8 @@ Cards now display explicit `ATK/HP`.
 When a card is placed:
 
 - the card shows a compact per-side projected result badge
+- if the player card dies, the `ME` line gets a skull marker
+- `Trade` preview switches to the red loss styling when the player card also dies
 - hover shows the full combat breakdown
 - the center marker between rows shows the real `Resolve` order for that column
 
@@ -102,6 +104,9 @@ The browser smoke verifies:
 - page loads without runtime errors
 - cards can be dragged into all 3 slots
 - `Resolve` enables correctly
+- projected combat badges render for placed cards
+- player-death previews show a skull on the `ME` line
+- both true `Lose` and lethal `Trade` previews use the red loss badge styling
 - `Resolve` becomes `Continue` after the first fight
 - first-fight staged resolve UI appears
 - hover UI renders

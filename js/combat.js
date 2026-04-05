@@ -68,10 +68,11 @@ export function getDamageBreakdown(attacker, defender) {
   let reduction = 0
   const reductionSources = []
   if (defender.role === 'defense') {
-    reduction = Math.floor(defender.value * GAME.DEFENSE_REDUCTION) + (defender.buffs ?? 0)
+    const defenseBaseHp = typeof defender.hp === 'number' ? defender.hp : defender.value
+    reduction = Math.floor(defenseBaseHp * GAME.DEFENSE_REDUCTION) + (defender.buffs ?? 0)
     reductionSources.push({
       label: 'Defense role',
-      amount: Math.floor(defender.value * GAME.DEFENSE_REDUCTION),
+      amount: Math.floor(defenseBaseHp * GAME.DEFENSE_REDUCTION),
     })
     if ((defender.buffs ?? 0) > 0) {
       reductionSources.push({ label: 'Buffs to defense', amount: defender.buffs ?? 0 })

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tutorial Tests</title>
+</head>
+<body>
+<script type="module">
+import { getChapterForStep, isNewChapter } from '../js/tutorial.js'
+
+console.assert(getChapterForStep(999) === null, 'out-of-range step returns null')
+console.assert(getChapterForStep(-1) === null, 'negative index returns null')
+console.assert(isNewChapter(0) === true, 'step 0 is always a new chapter')
+
+console.log('Tutorial engine tests passed \u2713')
+</script>
+</body>
+</html>
