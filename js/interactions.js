@@ -143,6 +143,18 @@ function snapCardToSlot(cardEl, slotEl, callbacks = {}) {
 export function initDrag(cardEl, callbacks = {}) {
   let isDragging = false
   let wiggleTween = null
+  let previewSlot = null
+  let previewSlotClass = ''
+
+  function clearPreviewSlotState() {
+    if (!previewSlot) return
+    previewSlot.classList.remove('slot--active')
+    if (previewSlotClass) {
+      previewSlot.classList.remove(previewSlotClass)
+    }
+    previewSlot = null
+    previewSlotClass = ''
+  }
 
   cardEl.addEventListener('mouseenter', () => {
     if (isDragging) return
@@ -161,6 +173,7 @@ export function initDrag(cardEl, callbacks = {}) {
     onPress() {
       isDragging = true
       cardEl.classList.add('card--dragging')
+      clearPreviewSlotState()
       if (wiggleTween) { wiggleTween.kill(); wiggleTween = null }
       gsap.set(cardEl, { rotateZ: 0 })
       // If card was in a slot, free it
@@ -187,11 +200,17 @@ export function initDrag(cardEl, callbacks = {}) {
       gsap.set(cardEl, { rotateZ: calcTilt(dx, ANIM.tiltMax) })
 
       const cardCenter = getCardCenter(cardEl)
+      clearPreviewSlotState()
       clearSlotHighlights()
       clearCardHighlights()
       const nearest = findNearestFreeSlot(cardCenter)
       if (nearest) {
         nearest.classList.add('slot--active')
+        previewSlot = nearest
+        previewSlotClass = callbacks.getSlotHighlightClass?.(nearest, cardEl) ?? ''
+        if (previewSlotClass) {
+          nearest.classList.add(previewSlotClass)
+        }
       } else {
         const nearestCard = findNearestCard(cardEl, cardCenter)
         if (nearestCard) nearestCard.classList.add('card--snap-target')
@@ -200,6 +219,7 @@ export function initDrag(cardEl, callbacks = {}) {
     onClick() {
       isDragging = false
       cardEl.classList.remove('card--dragging')
+      clearPreviewSlotState()
       gsap.to(cardEl, {
         scale: 1,
         boxShadow: CARD.shadow,
@@ -210,6 +230,7 @@ export function initDrag(cardEl, callbacks = {}) {
     onDragEnd() {
       isDragging = false
       cardEl.classList.remove('card--dragging')
+      clearPreviewSlotState()
       clearSlotHighlights()
       clearCardHighlights()
       const cardCenter = getCardCenter(cardEl)

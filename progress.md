@@ -7,3 +7,7 @@ Original prompt: chce zebys uzyl kilku agentow i stworzyl tutorial gry wg planu 
 - 2026-04-05: Added browser diagnostics in `output/tutorial-smoke/` and fixed a layout bug caused by the tutorial highlight class overriding absolute slot positioning.
 - 2026-04-05: Confirmed browser load and early progression (steps 1-4, plus drag auto-advance into step 5) with Playwright.
 - 2026-04-05: Replaced the tutorial-only card markup with a shared renderer in `js/card-renderer.js` so `tutorial.html` and `index.html` now use the same card visual structure.
+- 2026-04-05: Verified the current branch already shuffles `gameState.playerDeck` inside `initRun()` via `shuffleDeck(createDeck())`; repeated `initRun()` calls produced different player deck orders.
+- 2026-04-05: Confirmed the board now exposes player/enemy deck buttons plus a scrollable deck overlay in `index.html` / `js/main.js`.
+- 2026-04-05: Updated browser smoke assertions so deck-count checks are case-insensitive and final deck counts are validated against rendered game state instead of a brittle hard-coded post-round value.
+- 2026-04-05: Re-ran `node tests/game-logic-smoke.mjs` and `python3 tests/rps_browser_smoke.py`; both passed.

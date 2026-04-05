@@ -3,7 +3,22 @@
  * Call this every time you need a new deck to avoid shared mutable state.
  */
 export function createDeck() {
-  return CARD_DEFINITIONS.map(def => ({ ...def }))
+  return CARD_DEFINITIONS.map((def) => cloneCardDefinition(def))
+}
+
+function cloneCardDefinition(definition) {
+  return {
+    ...definition,
+    effect: definition.effect ? { ...definition.effect } : null,
+    buffSources: [],
+    buffMeta: {
+      rawTotal: 0,
+      appliedTotal: 0,
+      cappedBy: 0,
+    },
+    ghostBuffer: false,
+    ghostBufferTurns: 0,
+  }
 }
 
 /**

@@ -157,7 +157,7 @@ Columns (enemy slot + player slot pair) are sorted by enemy strength each round:
 | `activateSupportOnPlacement()` | ✅ |
 | `activateSupportPostCombat()` | ✅ |
 | Edge case: Fragile Buffer (`buffAmount: 2`) | ✅ |
-| Edge case: Persistent Buffer (ghostBuffer after death) | 🔲 |
+| Edge case: Persistent Buffer (ghostBuffer after death) | ✅ |
 
 ---
 
@@ -177,7 +177,7 @@ Columns (enemy slot + player slot pair) are sorted by enemy strength each round:
 | Task | Status |
 |---|---|
 | Combat preview on placement (projected damage overlay) | ✅ (replaced by a card badge + full hover breakdown) |
-| Slot coloring by RPS: green/yellow/red | 🔲 (CSS classes already exist: `.slot--advantage`, `.slot--neutral`, `.slot--disadvantage`) |
+| Slot coloring by RPS: green/yellow/red | ✅ (live during drag preview and persistent on placed cards) |
 | Resolution-order numbering on enemy cards | ✅ (marker `⚔️` + `1st/2nd/3rd`, tied to resolve order) |
 | Visible provenance of card modifiers | ✅ |
 
@@ -187,7 +187,7 @@ Columns (enemy slot + player slot pair) are sorted by enemy strength each round:
 
 | Task | Status |
 |---|---|
-| Reward screen (choose 1 of 3 cards) | 🔲 |
+| Reward screen (choose 1 of 3 cards) | ✅ |
 | Defeat screen with Restart | ✅ (loss overlay with `btn-restart` in `main.js`) |
 | `game.js resetRun()` | ✅ (`resetRun` implemented, uses `location.reload()`) |
 
@@ -233,7 +233,24 @@ Columns (enemy slot + player slot pair) are sorted by enemy strength each round:
   - first-card bonus is cleared after round resolution
   - post-combat support buffs persist onto surviving cards
 
-**Open follow-up:** `Persistent Buffer` ghost behavior (`persistBuffTurns`) is still not implemented; the current provenance system is ready for it, but death-phase board retention logic still needs to be added.
+---
+
+## 2026-04-05 Run Structure + Persistent Buffer Completion
+
+- Finished the remaining Phase 4 / 6 / 7 gaps in the prototype:
+  - `Persistent Buffer` now converts into a one-round ghost support on death (`ghostBuffer`, `ghostBufferTurns`)
+  - ghost supports stay in their slot for one extra combat cycle, keep buffing adjacent allies, then expire during the next cleanup
+  - slot RPS colors now work both as drag-preview feedback and as persistent matchup hints for already placed cards
+  - winning an encounter now opens a 3-card reward draft overlay; choosing one card adds it to the player's deck and starts a fresh enemy encounter
+- Reworked `drawCards()` to fill only the number of open player slots, which keeps the ghost-buffer round flow coherent when one slot is already occupied by a dead support echo.
+- Hardened card instancing in `cards-data.js` so fresh card copies no longer share mutable runtime arrays like `buffSources`.
+- Extended `tests/game-logic-smoke.mjs` to verify:
+  - draw count respects ghost-occupied slots
+  - `Persistent Buffer` leaves behind a ghost aura for one more round
+  - ghost auras expire after the following cleanup
+  - a win now transitions into reward draft state and `claimReward()` starts the next encounter
+
+**Verification note:** module smoke passed after the changes. Browser smoke could not be rerun in this environment because the local `playwright` module is currently unavailable.
 
 ---
 

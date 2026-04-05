@@ -14,6 +14,20 @@
   <div id="board">
     <div class="board-emblem">Card Table</div>
 
+    <div id="deck-panel">
+      <button id="enemy-deck-button" class="deck-button deck-button--enemy" type="button" aria-haspopup="dialog">
+        <span class="deck-button__eyebrow">Opponent</span>
+        <span class="deck-button__title">Deck</span>
+        <span id="enemy-deck-count" class="deck-button__count">0 cards</span>
+      </button>
+
+      <button id="player-deck-button" class="deck-button deck-button--player" type="button" aria-haspopup="dialog">
+        <span class="deck-button__eyebrow">Player</span>
+        <span class="deck-button__title">Deck</span>
+        <span id="player-deck-count" class="deck-button__count">0 cards</span>
+      </button>
+    </div>
+
     <div id="enemy-board">
       <div id="enemy-slots"></div>
       <div id="enemy-cards"></div>

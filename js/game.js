@@ -2,14 +2,14 @@ import { GAME } from '../config/game.config.js'
 import { createDeck } from './cards-data.js'
 import { addBuffSource, clearBuffSourcesByScope, ensureBuffState, syncCardBuffs } from './buffs.js'
 import { calcDamage, resolvePair, getAdjacentAllies, getRpsResult } from './combat.js'
-import { createEnemyDeck, enemyRefillBoard } from './enemy.js'
+import { createEnemyDeck, enemyRefillBoard, shuffleDeck } from './enemy.js'
 
 /**
  * Central game state.
  * Do not mutate directly — use the functions below.
  */
 export const gameState = {
-  phase: 'draw',            // 'draw' | 'placement' | 'combat' | 'end'
+  phase: 'draw',            // 'draw' | 'placement' | 'combat' | 'reward' | 'end'
   round: 1,
 
   playerDeck: [],           // Card[] — cards not yet in hand or on board
@@ -20,9 +20,46 @@ export const gameState = {
   enemyBoard: [],           // (Card|null)[] — length = SLOT_COUNT
 
   placementOrder: [],       // Card[] — tracks order cards were placed (for first-card bonus)
+  rewardChoices: [],        // Card[] — current post-victory reward draft
+}
+
+function isGhostCard(card) {
+  return Boolean(card?.ghostBuffer && card?.ghostBufferTurns > 0)
+}
+
+function canPersistAsGhost(card) {
+  return Boolean(card?.role === 'support' && card?.effect?.persistBuffTurns)
+}
+
+function markCardAsGhost(card) {
+  card.hp = 0
+  card.ghostBuffer = true
+  card.ghostBufferTurns = card.effect.persistBuffTurns
+  clearBuffSourcesByScope(card, 'temporary')
+  syncCardBuffs(card)
+  return card
+}
+
+function expireExistingGhosts(board, existingGhostIds) {
+  for (let slotIndex = 0; slotIndex < board.length; slotIndex += 1) {
+    const card = board[slotIndex]
+    if (!card || !existingGhostIds.has(card.id)) continue
+
+    card.ghostBufferTurns = Math.max(0, (card.ghostBufferTurns ?? 0) - 1)
+    if (card.ghostBufferTurns <= 0) {
+      board[slotIndex] = null
+      continue
+    }
+    syncCardBuffs(card)
+  }
+}
+
+function countOpenPlayerSlots() {
+  return gameState.playerBoard.filter((card) => card === null).length
 }
 
 function getCardStrength(card) {
+  if (isGhostCard(card)) return -Infinity
   return card ? card.value + card.buffs : -Infinity
 }
 
@@ -107,6 +144,7 @@ function applySupportPlacementBuffs(board, ownerLabel) {
         amount,
         label: `${card.name} support`,
         description: `Adjacent ${card.name} on the right`,
+        kind: 'support',
         scope: 'temporary',
       })
     }
@@ -117,6 +155,7 @@ function applySupportPlacementBuffs(board, ownerLabel) {
         amount,
         label: `${card.name} support`,
         description: `Adjacent ${card.name} on the left`,
+        kind: 'support',
         scope: 'temporary',
       })
     }
@@ -125,7 +164,7 @@ function applySupportPlacementBuffs(board, ownerLabel) {
 
 function applySupportPostCombatBuffs(board, ownerLabel) {
   board.forEach((card, slotIndex) => {
-    if (!card || card.role !== 'support' || card.hp <= 0) return
+    if (!card || isGhostCard(card) || card.role !== 'support' || card.hp <= 0) return
 
     const [leftAlly, rightAlly] = getAdjacentAllies(board, slotIndex)
     const amount = GAME.SUPPORT_BUFF_ON_SURVIVE
@@ -136,6 +175,7 @@ function applySupportPostCombatBuffs(board, ownerLabel) {
         amount,
         label: `${card.name} survived`,
         description: `Adjacent ${card.name} survived combat on the right`,
+        kind: 'support',
       })
     }
 
@@ -145,6 +185,7 @@ function applySupportPostCombatBuffs(board, ownerLabel) {
         amount,
         label: `${card.name} survived`,
         description: `Adjacent ${card.name} survived combat on the left`,
+        kind: 'support',
       })
     }
   })
@@ -158,10 +199,18 @@ function recalculateBoardBuffs() {
   getAllCardsInState().forEach((card) => syncCardBuffs(card))
 }
 
+function createRewardChoices(count = GAME.SLOT_COUNT) {
+  return shuffleDeck(createDeck()).slice(0, count)
+}
+
 /**
  * Recalculates derived buffs after the enemy board changes.
  */
 function recalculateEnemyBuffs() {
+  recalculateBoardBuffs()
+}
+
+export function syncDerivedState() {
   recalculateBoardBuffs()
 }
 
@@ -172,12 +221,13 @@ function recalculateEnemyBuffs() {
  * Call once on game start; call again via resetRun() after a loss.
  */
 export function initRun() {
-  gameState.playerDeck = createDeck()
+  gameState.playerDeck = shuffleDeck(createDeck())
   gameState.playerHand = []
   gameState.playerBoard = Array(GAME.SLOT_COUNT).fill(null)
   gameState.enemyDeck = createEnemyDeck()
   gameState.enemyBoard = Array(GAME.SLOT_COUNT).fill(null)
   gameState.placementOrder = []
+  gameState.rewardChoices = []
   gameState.round = 1
   gameState.phase = 'draw'
 
@@ -199,9 +249,10 @@ export function resetRun() {
  */
 export function drawCards() {
   const drawnCards = []
+  const targetHandSize = countOpenPlayerSlots()
 
   while (
-    gameState.playerHand.length < GAME.SLOT_COUNT &&
+    gameState.playerHand.length < targetHandSize &&
     gameState.playerDeck.length > 0
   ) {
     const drawnCard = gameState.playerDeck.shift()
@@ -275,7 +326,7 @@ function buildCombatStep(slotIndex) {
   const player = gameState.playerBoard[slotIndex]
   const enemy = gameState.enemyBoard[slotIndex]
 
-  if (!player || !enemy) {
+  if (!player || !enemy || isGhostCard(player) || isGhostCard(enemy)) {
     return { slot: slotIndex, skipped: true }
   }
 
@@ -361,19 +412,35 @@ export function resolveCombatStep(slotIndex) {
 export function finalizeResolveRound(log = []) {
   if (gameState.phase !== 'combat') return null
 
+  const existingPlayerGhostIds = new Set(
+    gameState.playerBoard.filter((card) => isGhostCard(card)).map((card) => card.id)
+  )
+  const existingEnemyGhostIds = new Set(
+    gameState.enemyBoard.filter((card) => isGhostCard(card)).map((card) => card.id)
+  )
+
   // Death check — remove dead cards
   for (let i = 0; i < GAME.SLOT_COUNT; i++) {
-    if (gameState.playerBoard[i]?.hp <= 0) gameState.playerBoard[i] = null
-    if (gameState.enemyBoard[i]?.hp <= 0) gameState.enemyBoard[i] = null
+    const playerCard = gameState.playerBoard[i]
+    if (playerCard?.hp <= 0 && !isGhostCard(playerCard)) {
+      gameState.playerBoard[i] = canPersistAsGhost(playerCard) ? markCardAsGhost(playerCard) : null
+    }
+
+    const enemyCard = gameState.enemyBoard[i]
+    if (enemyCard?.hp <= 0 && !isGhostCard(enemyCard)) {
+      gameState.enemyBoard[i] = canPersistAsGhost(enemyCard) ? markCardAsGhost(enemyCard) : null
+    }
   }
 
   applySupportPostCombatBuffs(gameState.playerBoard, 'player')
   applySupportPostCombatBuffs(gameState.enemyBoard, 'enemy')
+  expireExistingGhosts(gameState.playerBoard, existingPlayerGhostIds)
+  expireExistingGhosts(gameState.enemyBoard, existingEnemyGhostIds)
 
   // Surviving player cards return to hand
   for (let i = 0; i < GAME.SLOT_COUNT; i++) {
     const card = gameState.playerBoard[i]
-    if (card) {
+    if (card && !isGhostCard(card)) {
       gameState.playerHand.push(card)
       gameState.playerBoard[i] = null
     }
@@ -385,18 +452,20 @@ export function finalizeResolveRound(log = []) {
   recalculateBoardBuffs()
 
   gameState.round += 1
+  gameState.rewardChoices = []
 
   // Check end condition
   const playerHasCards = gameState.playerHand.length > 0 || gameState.playerDeck.length > 0
-  const enemyHasCards = gameState.enemyBoard.some(c => c !== null) || gameState.enemyDeck.length > 0
+  const enemyHasCards = gameState.enemyBoard.some((card) => card !== null) || gameState.enemyDeck.length > 0
 
   if (!playerHasCards) {
     gameState.phase = 'end'
     return { log, outcome: 'loss' }
   }
   if (!enemyHasCards) {
-    gameState.phase = 'end'
-    return { log, outcome: 'win' }
+    gameState.phase = 'reward'
+    gameState.rewardChoices = createRewardChoices()
+    return { log, outcome: 'win', rewardChoices: [...gameState.rewardChoices] }
   }
 
   gameState.phase = 'draw'
@@ -417,4 +486,33 @@ export function resolveRound() {
 
   console.log('[Round', gameState.round, 'results]', log)
   return finalizeResolveRound(log)
+}
+
+export function claimReward(cardId) {
+  if (gameState.phase !== 'reward') return null
+
+  const rewardIndex = gameState.rewardChoices.findIndex((card) => card.id === cardId)
+  if (rewardIndex === -1) return null
+
+  const [rewardCard] = gameState.rewardChoices.splice(rewardIndex, 1)
+  gameState.playerDeck.push(rewardCard)
+  gameState.rewardChoices = []
+  gameState.playerBoard = Array(GAME.SLOT_COUNT).fill(null)
+  gameState.enemyDeck = createEnemyDeck()
+  gameState.enemyBoard = Array(GAME.SLOT_COUNT).fill(null)
+  gameState.placementOrder = []
+  gameState.round = 1
+  gameState.phase = 'draw'
+
+  enemyRefillBoard(gameState.enemyBoard, gameState.enemyDeck)
+  recalculateEnemyBuffs()
+  recalculateBoardBuffs()
+
+  return rewardCard
+}
+
+export function getGhostPlayerBoardCards() {
+  return gameState.playerBoard
+    .map((card, slotIndex) => ({ card, slotIndex }))
+    .filter(({ card }) => isGhostCard(card))
 }

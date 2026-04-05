@@ -46,6 +46,7 @@ export function addBuffSource(card, source) {
     amount: source.amount,
     label: source.label,
     description: source.description,
+    kind: source.kind ?? 'generic',
     scope: source.scope ?? 'persistent',
   }
 

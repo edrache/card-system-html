@@ -4,6 +4,8 @@
   "enemy_cards": 3,
   "slotted_cards": 0,
   "resolve_enabled": false,
+  "player_deck_count": 6,
+  "enemy_deck_count": 6,
   "page_errors": [],
   "console_errors": []
 }

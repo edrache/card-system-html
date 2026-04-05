@@ -69,20 +69,30 @@ export function getDamageBreakdown(attacker, defender) {
   const reductionSources = []
   if (defender.role === 'defense') {
     const defenseBaseHp = typeof defender.hp === 'number' ? defender.hp : defender.value
-    reduction = Math.floor(defenseBaseHp * GAME.DEFENSE_REDUCTION) + (defender.buffs ?? 0)
+    const baseDefenseReduction = Math.ceil(defenseBaseHp * GAME.DEFENSE_REDUCTION)
+    reduction = baseDefenseReduction + (defender.buffs ?? 0)
     reductionSources.push({
       label: 'Defense role',
-      amount: Math.floor(defenseBaseHp * GAME.DEFENSE_REDUCTION),
+      amount: baseDefenseReduction,
+      detail: `half of HP ${defenseBaseHp}, rounded up`,
     })
     if ((defender.buffs ?? 0) > 0) {
-      reductionSources.push({ label: 'Buffs to defense', amount: defender.buffs ?? 0 })
+      reductionSources.push({
+        label: 'Buffs to defense',
+        amount: defender.buffs ?? 0,
+        detail: 'active defense buffs',
+      })
     }
   }
 
   // Shield effect: extra -1 after standard reduction
   if (defender.effect?.extraReduction) {
     reduction += defender.effect.extraReduction
-    reductionSources.push({ label: 'Shield effect', amount: defender.effect.extraReduction })
+    reductionSources.push({
+      label: 'Shield effect',
+      amount: defender.effect.extraReduction,
+      detail: 'card effect',
+    })
   }
 
   // Reactive Guard: +2 reduction when at RPS disadvantage (i.e. attacker has advantage)
@@ -91,6 +101,7 @@ export function getDamageBreakdown(attacker, defender) {
     reductionSources.push({
       label: 'Reactive Guard effect',
       amount: defender.effect.bonusReductionOnDisadvantage,
+      detail: 'triggered by RPS disadvantage',
     })
   }
 

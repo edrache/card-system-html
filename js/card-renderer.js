@@ -52,12 +52,34 @@ function createTooltipSectionRow(label, parts, extraClass = '') {
   )
 }
 
+function appendModifierRow(list, source) {
+  list.appendChild(
+    createTooltipRichRow([
+      { type: 'delta', text: formatStatDelta(source.amount, 0) },
+      ' ',
+      `${source.label}: ${source.description}`,
+    ])
+  )
+}
+
 function formatSignedAmount(amount) {
   return `${amount >= 0 ? '+' : ''}${amount}`
 }
 
 function formatStatDelta(atkDelta = 0, hpDelta = 0) {
   return `${formatSignedAmount(atkDelta)}/${formatSignedAmount(hpDelta)}`
+}
+
+function formatReductionDelta(amount) {
+  return `${formatSignedAmount(-amount)}/0`
+}
+
+function appendReductionSourceParts(parts, source, index) {
+  if (index > 0) parts.push(', ')
+  parts.push({ type: 'delta', text: formatReductionDelta(source.amount) }, ` ${source.label}`)
+  if (source.detail) {
+    parts.push(` (${source.detail})`)
+  }
 }
 
 function formatAttackLine(label, breakdown) {
@@ -76,7 +98,11 @@ function formatAttackLine(label, breakdown) {
 
   parts.push(' => ', { type: 'delta', text: `${breakdown.rawAttack}/0` }, ' applied')
   if (breakdown.reduction > 0) {
-    parts.push(', ', { type: 'delta', text: `0/-${breakdown.reduction}` }, ' blocked')
+    parts.push(', blocked by ')
+    breakdown.reductionSources.forEach((source, index) => appendReductionSourceParts(parts, source, index))
+    if (breakdown.reductionSources.length > 1) {
+      parts.push(', ', { type: 'delta', text: formatReductionDelta(breakdown.reduction) }, ' total block')
+    }
   }
   parts.push(', hit ', { type: 'delta', text: formatStatDelta(0, -breakdown.finalDamage) })
   return createTooltipSectionRow(label, parts, 'card__tooltip-item--combat')
@@ -87,16 +113,15 @@ function formatDefenseLine(label, breakdown) {
     return createTooltipSectionRow(label, ['no active reduction'], 'card__tooltip-item--combat')
   }
 
-  const parts = []
-  breakdown.reductionSources.forEach((source, index) => {
-    if (index > 0) parts.push(', ')
-    parts.push({ type: 'delta', text: `0/-${source.amount}` }, ` ${source.label}`)
-  })
-  parts.push(' => ', { type: 'delta', text: `0/-${breakdown.reduction}` }, ' total block')
+  const parts = [{ type: 'delta', text: formatReductionDelta(breakdown.reduction) }, ' total block']
+  if (breakdown.reductionSources.length > 0) {
+    parts.push(': ')
+    breakdown.reductionSources.forEach((source, index) => appendReductionSourceParts(parts, source, index))
+  }
   return createTooltipSectionRow(label, parts, 'card__tooltip-item--combat')
 }
 
-function createCardTooltip(card, summary, effectiveValue, combatProjection = null) {
+function createCardTooltip(card, summary, effectiveValue, combatProjection = null, isEnemy = false) {
   const tooltip = document.createElement('div')
   tooltip.className = 'card__tooltip'
 
@@ -109,18 +134,27 @@ function createCardTooltip(card, summary, effectiveValue, combatProjection = nul
   list.appendChild(createTooltipSectionRow('Base', [{ type: 'delta', text: `${card.value}/${card.value}` }]))
   list.appendChild(createTooltipSectionRow('Current', [{ type: 'delta', text: `${effectiveValue}/${card.hp}` }]))
 
-  if (summary.sources.length === 0) {
-    list.appendChild(createTooltipRow('No active modifiers'))
-  } else {
-    summary.sources.forEach((source) => {
+  const supportSources = summary.sources.filter((source) => source.kind === 'support')
+  const genericSources = isEnemy
+    ? summary.sources.filter((source) => source.kind !== 'support')
+    : summary.sources
+
+  if (isEnemy && supportSources.length > 0) {
+    supportSources.forEach((source) => {
       list.appendChild(
-        createTooltipRichRow([
+        createTooltipSectionRow('Support', [
           { type: 'delta', text: formatStatDelta(source.amount, 0) },
           ' ',
           `${source.label}: ${source.description}`,
         ])
       )
     })
+  }
+
+  if (genericSources.length === 0 && (!isEnemy || supportSources.length === 0)) {
+    list.appendChild(createTooltipRow('No active modifiers'))
+  } else {
+    genericSources.forEach((source) => appendModifierRow(list, source))
   }
 
   if (summary.cappedBy > 0) {
@@ -200,12 +234,24 @@ function updateCombatBadge(cardEl, combatProjection = null) {
   const playerDies = combatProjection.playerAfterHp <= 0
   const badgeOutcome = playerDies && combatProjection.outcome === 'trade' ? 'lose' : combatProjection.outcome
   const meSkull = playerDies ? ' 💀' : ''
+  const badgeLines = []
+
+  if (combatProjection.enemyBreakdown.reduction > 0) {
+    badgeLines.push(`ME DEF ${formatReductionDelta(combatProjection.enemyBreakdown.reduction)}`)
+  }
+
+  if (combatProjection.playerBreakdown.reduction > 0) {
+    badgeLines.push(`EN DEF ${formatReductionDelta(combatProjection.playerBreakdown.reduction)}`)
+  }
+
+  badgeLines.push(`ME ${formatStatDelta(0, combatProjection.playerHpDelta)}${meSkull}`)
+  badgeLines.push(`EN ${formatStatDelta(0, combatProjection.enemyHpDelta)}`)
 
   const badge = existing ?? document.createElement('div')
   badge.className = `card__combat-badge card__combat-badge--${badgeOutcome}`
-  badge.innerHTML =
-    `<span class="card__combat-badge-line">ME ${formatStatDelta(0, combatProjection.playerHpDelta)}${meSkull}</span>` +
-    `<span class="card__combat-badge-line">EN ${formatStatDelta(0, combatProjection.enemyHpDelta)}</span>`
+  badge.innerHTML = badgeLines
+    .map((line) => `<span class="card__combat-badge-line">${line}</span>`)
+    .join('')
 
   if (!existing) {
     cardEl.querySelector('.card__top')?.appendChild(badge)
@@ -215,11 +261,12 @@ function updateCombatBadge(cardEl, combatProjection = null) {
 export function updateCardPresentation(cardEl, card, combatProjection = null) {
   const summary = getBuffSummary(card)
   const effectiveValue = card.value + summary.total
+  const isEnemy = cardEl.classList.contains('card--enemy')
 
   updateStatsCluster(cardEl, card, summary, effectiveValue)
 
   const oldTooltip = cardEl.querySelector('.card__tooltip')
-  const newTooltip = createCardTooltip(card, summary, effectiveValue, combatProjection)
+  const newTooltip = createCardTooltip(card, summary, effectiveValue, combatProjection, isEnemy)
   if (oldTooltip) {
     oldTooltip.replaceWith(newTooltip)
   } else {

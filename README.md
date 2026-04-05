@@ -16,6 +16,8 @@ Each round works like this:
 6. Each fight shows which card stays, how its HP changed, and which card was destroyed.
 7. Destroyed cards tilt to show the loss before cleanup.
 8. Surviving player cards return to hand, missing cards are drawn, enemy refills, next round begins.
+9. If a `Persistent Buffer` dies, it can leave behind a one-round ghost aura in its slot.
+10. Clearing the enemy encounter opens a 3-card reward draft before the next fight starts.
 
 ## Card Readability
 
@@ -62,8 +64,10 @@ The tooltip system is designed to answer:
 - First-card placement bonus
 - Support placement buffs
 - Support post-combat survival buffs
+- `Persistent Buffer` ghost aura after death
 - Persistent HP between rounds
 - Enemy refill after each round
+- Reward draft into the next encounter
 - Column reordering by enemy strength
 - Resolve-order markers (`⚔️`, `1st/2nd/3rd`)
 - Staged `Resolve -> Continue` combat flow
@@ -173,7 +177,4 @@ tests/
 
 Still incomplete:
 
-- `Persistent Buffer` ghost behavior after death
-- RPS slot highlight colors during drag
-- reward screen / run progression beyond a single encounter
 - possible lighter treatment for the per-fight result note if it feels too heavy on card art

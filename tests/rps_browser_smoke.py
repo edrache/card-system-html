@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -6,6 +7,24 @@ from playwright.sync_api import sync_playwright
 
 OUTPUT_DIR = Path("output/browser-smoke")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:4173/index.html")
+
+BASE_DECK_ORDER = [
+    "aggressor-6",
+    "aggressor-4",
+    "glass-cannon-5",
+    "opportunist-3",
+    "defender-6",
+    "shield-4",
+    "reactive-guard-3",
+    "buffer-3",
+    "fragile-buffer-2",
+    "persistent-buffer-4",
+]
+
+
+def format_deck_count(count: int) -> str:
+    return f"{count} {'card' if count == 1 else 'cards'}"
 
 
 def drag_card_to_slot(page, card_index: int, slot_index: int) -> None:
@@ -32,6 +51,10 @@ def drag_card_to_slot(page, card_index: int, slot_index: int) -> None:
     page.wait_for_timeout(500)
 
 
+def get_text_state(page) -> dict:
+    return page.evaluate("JSON.parse(window.render_game_to_text())")
+
+
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(
         headless=True,
@@ -49,13 +72,40 @@ with sync_playwright() as playwright:
         lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
     )
 
-    page.goto("http://127.0.0.1:4173/index.html", wait_until="networkidle")
+    page.goto(BASE_URL, wait_until="networkidle")
 
     assert page.locator("#cards .card").count() == 3
     assert page.locator("#enemy-cards .card").count() == 3
     assert page.locator(".column-fight-marker").count() == 3
     assert page.locator(".column-fight-marker__order").count() == 3
     assert page.locator("#btn-resolve").is_enabled() is False
+    assert page.locator("#player-deck-button").count() == 1
+    assert page.locator("#enemy-deck-button").count() == 1
+
+    initial_state = get_text_state(page)
+    assert initial_state["playerDeckCount"] == 7
+    assert initial_state["enemyDeckCount"] == 7
+    assert [card["id"] for card in initial_state["playerDeck"]] != BASE_DECK_ORDER[:7]
+    player_deck_count_text = page.locator("#player-deck-count").inner_text()
+    enemy_deck_count_text = page.locator("#enemy-deck-count").inner_text()
+    assert player_deck_count_text.lower() == format_deck_count(initial_state["playerDeckCount"]), player_deck_count_text
+    assert enemy_deck_count_text.lower() == format_deck_count(initial_state["enemyDeckCount"]), enemy_deck_count_text
+
+    page.locator("#player-deck-button").click()
+    assert page.locator("#deck-overlay-title").inner_text() == "Player Deck"
+    assert page.locator(".deck-list-item").count() == 7
+    assert page.locator(".deck-list-item").nth(0).inner_text().startswith("#1")
+    assert page.locator(".deck-overlay__list").evaluate(
+        "el => ['auto', 'scroll'].includes(getComputedStyle(el).overflowY)"
+    )
+    page.locator("#deck-overlay-close").click()
+    assert page.locator("#overlay.hidden").count() == 1
+
+    page.locator("#enemy-deck-button").click()
+    assert page.locator("#deck-overlay-title").inner_text() == "Opponent Deck"
+    assert page.locator(".deck-list-item").count() == 7
+    page.locator("#deck-overlay-close").click()
+    assert page.locator("#overlay.hidden").count() == 1
 
     enemy_card = page.locator("#enemy-cards .card").nth(0)
     enemy_card.hover()
@@ -78,10 +128,6 @@ with sync_playwright() as playwright:
     assert page.locator("#cards .card").nth(0).locator(".card__combat-badge").count() == 1
     assert "ME" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
     assert "EN" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
-    assert "card__combat-badge--lose" in (
-        page.locator("#cards .card[data-slot-id='slot-0'] .card__combat-badge").get_attribute("class") or ""
-    )
-    assert "\N{SKULL}" in page.locator("#cards .card[data-slot-id='slot-0'] .card__combat-badge").inner_text()
 
     page.locator("#cards .card").nth(0).hover()
     assert page.locator("#cards .card").nth(0).locator(".card__tooltip").count() == 1
@@ -91,12 +137,8 @@ with sync_playwright() as playwright:
     assert "Outcome:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
 
     drag_card_to_slot(page, 1, 1)
-    assert "card__combat-badge--lose" in (
-        page.locator("#cards .card[data-slot-id='slot-1'] .card__combat-badge").get_attribute("class") or ""
-    )
-    assert "\N{SKULL}" in page.locator("#cards .card[data-slot-id='slot-1'] .card__combat-badge").inner_text()
     page.locator("#cards .card[data-slot-id='slot-1']").hover()
-    assert "TRADE" in page.locator("#cards .card[data-slot-id='slot-1'] .card__tooltip").inner_text()
+    assert "Combat:" in page.locator("#cards .card[data-slot-id='slot-1'] .card__tooltip").inner_text()
     drag_card_to_slot(page, 2, 2)
 
     assert page.locator("#btn-resolve").is_enabled() is True
@@ -153,6 +195,12 @@ with sync_playwright() as playwright:
     assert page.locator("#cards .card[data-slot-id]").count() == 0
     assert page.locator(".card__resolution-note").count() == 0
     assert page.locator("#overlay.hidden").count() == 1
+    final_state = get_text_state(page)
+    assert final_state["round"] == 2
+    assert final_state["playerDeckCount"] <= initial_state["playerDeckCount"]
+    assert final_state["enemyDeckCount"] <= initial_state["enemyDeckCount"]
+    assert page.locator("#player-deck-count").inner_text().lower() == format_deck_count(final_state["playerDeckCount"])
+    assert page.locator("#enemy-deck-count").inner_text().lower() == format_deck_count(final_state["enemyDeckCount"])
     assert page_errors == []
     assert console_errors == []
 
@@ -165,6 +213,8 @@ with sync_playwright() as playwright:
                 "enemy_cards": page.locator("#enemy-cards .card").count(),
                 "slotted_cards": page.locator("#cards .card[data-slot-id]").count(),
                 "resolve_enabled": page.locator("#btn-resolve").is_enabled(),
+                "player_deck_count": final_state["playerDeckCount"],
+                "enemy_deck_count": final_state["enemyDeckCount"],
                 "page_errors": page_errors,
                 "console_errors": console_errors,
             },

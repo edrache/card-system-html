@@ -6,7 +6,7 @@ export const GAME = {
 
   // Role modifiers
   ATTACK_BONUS: 2,            // extra damage dealt by attack-role cards
-  DEFENSE_REDUCTION: 0.5,     // fraction of value subtracted from incoming damage for defense-role cards
+  DEFENSE_REDUCTION: 0.5,     // fraction of current HP subtracted from incoming damage for defense-role cards, rounded up
 
   // First-card placement bonus (buffs added based on RPS match vs enemy in same slot)
   FIRST_CARD_BONUS_ADVANTAGE: 3,
