@@ -5,7 +5,9 @@ import { ANIM } from '../config/anim.config.js'
 import { initDrag } from './interactions.js'
 import { createCardEl, updateCardPresentation } from './card-renderer.js'
 import {
+  claimReward,
   gameState,
+  getGhostPlayerBoardCards,
   getResolutionOrder,
   initRun,
   drawCards,
@@ -14,9 +16,11 @@ import {
   prepareResolveRound,
   resolveCombatStep,
   finalizeResolveRound,
+  syncDerivedState,
 } from './game.js'
-import { getDamageBreakdown } from './combat.js'
+import { getDamageBreakdown, getRpsResult } from './combat.js'
 import {
+  hideOverlay,
   syncResolveButton,
   updateRoundCounter,
   logRoundResult,
@@ -27,6 +31,11 @@ import {
 
 const COLUMN_SPREAD = 55   // px — max Y offset for column reordering
 const COLUMN_FIGHT_EMOJI = '⚔️'
+const RPS_ICON = {
+  rock: '✊',
+  paper: '✋',
+  scissors: '✌️',
+}
 
 // ── DOM refs tracked by slot index ───────────────────────────────────────────
 
@@ -43,15 +52,9 @@ const combatFlowState = {
   resolvedSlots: new Set(),
 }
 
+const SLOT_MATCHUP_CLASSES = ['slot--advantage', 'slot--neutral', 'slot--disadvantage']
+
 // ── Element factories ─────────────────────────────────────────────────────────
-
-function formatSignedAmount(amount) {
-  return `${amount >= 0 ? '+' : ''}${amount}`
-}
-
-function formatStatDelta(atkDelta = 0, hpDelta = 0) {
-  return `${formatSignedAmount(atkDelta)}/${formatSignedAmount(hpDelta)}`
-}
 
 function getCombatProjection(playerCard, slotIndex) {
   const enemyCard = gameState.enemyBoard[slotIndex]
@@ -91,6 +94,24 @@ function getCombatProjection(playerCard, slotIndex) {
   }
 }
 
+function getSlotMatchupClass(card, slotIndex) {
+  const enemyCard = gameState.enemyBoard[slotIndex]
+  if (!card || !enemyCard || card.ghostBuffer || enemyCard.ghostBuffer) return ''
+
+  const rps = getRpsResult(card, enemyCard)
+  if (rps === 'advantage') return 'slot--advantage'
+  if (rps === 'neutral') return 'slot--neutral'
+  return 'slot--disadvantage'
+}
+
+function setSlotMatchupClass(slotEl, matchupClass = '') {
+  if (!slotEl) return
+  SLOT_MATCHUP_CLASSES.forEach((className) => slotEl.classList.remove(className))
+  if (matchupClass) {
+    slotEl.classList.add(matchupClass)
+  }
+}
+
 function createColumnMarkerEl(x, y) {
   const el = document.createElement('div')
   el.className = 'column-fight-marker'
@@ -122,25 +143,50 @@ function refreshColumnMarkers() {
   })
 }
 
-function findCardById(cardId) {
-  const allCards = [
+function findPlayerCardById(cardId) {
+  const playerCards = [
     ...gameState.playerHand,
     ...gameState.playerBoard,
-    ...gameState.enemyBoard,
     ...gameState.playerDeck,
+  ]
+
+  return playerCards.find((card) => card?.id === cardId) ?? null
+}
+
+function findEnemyCardById(cardId) {
+  const enemyCards = [
+    ...gameState.enemyBoard,
     ...gameState.enemyDeck,
   ]
 
-  return allCards.find((card) => card?.id === cardId) ?? null
+  return enemyCards.find((card) => card?.id === cardId) ?? null
+}
+
+function findCardByOwner(cardId, owner = 'player') {
+  return owner === 'enemy' ? findEnemyCardById(cardId) : findPlayerCardById(cardId)
 }
 
 function shouldShowCombatProjection(slotIndex) {
   return !combatFlowState.active || !combatFlowState.resolvedSlots.has(slotIndex)
 }
 
+function refreshSlotMatchups() {
+  playerSlotEls.forEach((slotEl, slotIndex) => {
+    if (!slotEl) return
+    if (gameState.phase !== 'placement') {
+      setSlotMatchupClass(slotEl)
+      return
+    }
+
+    const card = gameState.playerBoard[slotIndex]
+    setSlotMatchupClass(slotEl, getSlotMatchupClass(card, slotIndex))
+  })
+}
+
 function refreshVisibleCards() {
   document.querySelectorAll('#cards .card, #enemy-cards .card').forEach((cardEl) => {
-    const card = findCardById(cardEl.dataset.id)
+    const owner = cardEl.classList.contains('card--enemy') ? 'enemy' : 'player'
+    const card = findCardByOwner(cardEl.dataset.id, owner)
     if (!card) return
 
     const slotIndex = cardEl.dataset.slotId ? slotIdToIndex(cardEl.dataset.slotId) : -1
@@ -151,6 +197,7 @@ function refreshVisibleCards() {
     updateCardPresentation(cardEl, card, combatProjection)
   })
 
+  refreshSlotMatchups()
   refreshColumnMarkers()
 }
 
@@ -252,10 +299,9 @@ function reorderColumns() {
 // ── Hand rendering ────────────────────────────────────────────────────────────
 
 function renderHand() {
+  syncDerivedState()
   const container = document.getElementById('cards')
   container.innerHTML = ''
-
-  if (gameState.playerHand.length === 0) return
 
   const handY     = window.innerHeight - CARD.height - 50
   const positions = calcSlotRow(gameState.playerHand.length, handY)
@@ -278,8 +324,30 @@ function renderHand() {
         refreshVisibleCards()
         syncResolveButton()
       },
+      getSlotHighlightClass(slotEl, cardEl) {
+        const slotIndex = slotIdToIndex(slotEl.dataset.id)
+        const card = findPlayerCardById(cardEl.dataset.id)
+        return getSlotMatchupClass(card, slotIndex)
+      },
     })
 
+    container.appendChild(el)
+  })
+
+  renderGhostPlayerBoard(container)
+}
+
+function renderGhostPlayerBoard(container) {
+  const count = LAYOUT.slots.length
+  const playerRowY = Math.round(window.innerHeight * LAYOUT.playerSlotRowY)
+  const positions = calcSlotRow(count, playerRowY)
+
+  getGhostPlayerBoardCards().forEach(({ card, slotIndex }) => {
+    const el = createCardEl(card)
+    el.classList.add('card--ghost')
+    el.style.left = `${positions[slotIndex].x}px`
+    el.style.top = `${positions[slotIndex].y}px`
+    el.style.cursor = 'default'
     container.appendChild(el)
   })
 }
@@ -287,6 +355,7 @@ function renderHand() {
 // ── Enemy board rendering ─────────────────────────────────────────────────────
 
 function renderEnemyBoard() {
+  syncDerivedState()
   const container = document.getElementById('enemy-cards')
   container.innerHTML = ''
   enemyCardEls.fill(null)
@@ -301,11 +370,117 @@ function renderEnemyBoard() {
       return
     }
     const el = createCardEl(card, true /* isEnemy */)
+    if (card.ghostBuffer) {
+      el.classList.add('card--ghost')
+    }
     el.style.left   = positions[i].x + 'px'
     el.style.top    = positions[i].y + 'px'
     el.style.cursor = 'default'
     container.appendChild(el)
     enemyCardEls[i] = el
+  })
+}
+
+function formatDeckCount(deckSize) {
+  return `${deckSize} ${deckSize === 1 ? 'card' : 'cards'}`
+}
+
+function updateDeckButton(buttonId, countId, deckSize) {
+  const button = document.getElementById(buttonId)
+  const countEl = document.getElementById(countId)
+  if (!button || !countEl) return
+
+  button.dataset.deckSize = String(deckSize)
+  button.classList.toggle('deck-button--empty', deckSize === 0)
+  countEl.textContent = formatDeckCount(deckSize)
+}
+
+function renderDeckButtons() {
+  updateDeckButton('player-deck-button', 'player-deck-count', gameState.playerDeck.length)
+  updateDeckButton('enemy-deck-button', 'enemy-deck-count', gameState.enemyDeck.length)
+}
+
+function createDeckListItem(card, index) {
+  const item = document.createElement('article')
+  item.className = 'deck-list-item'
+
+  const order = document.createElement('div')
+  order.className = 'deck-list-item__order'
+  order.textContent = `#${index + 1}`
+
+  const main = document.createElement('div')
+  main.className = 'deck-list-item__main'
+
+  const titleRow = document.createElement('div')
+  titleRow.className = 'deck-list-item__title-row'
+
+  const name = document.createElement('div')
+  name.className = 'deck-list-item__name'
+  name.textContent = card.name
+
+  const rps = document.createElement('div')
+  rps.className = 'deck-list-item__rps'
+  rps.textContent = `${RPS_ICON[card.rps] ?? '?'} ${card.rps}`
+
+  titleRow.appendChild(name)
+  titleRow.appendChild(rps)
+
+  const meta = document.createElement('div')
+  meta.className = 'deck-list-item__meta'
+  meta.textContent = `${card.role} · ATK ${card.value} · HP ${card.hp}`
+
+  const effect = document.createElement('div')
+  effect.className = 'deck-list-item__effect'
+  effect.textContent = card.effectText ?? 'No special effect'
+
+  main.appendChild(titleRow)
+  main.appendChild(meta)
+  main.appendChild(effect)
+
+  item.appendChild(order)
+  item.appendChild(main)
+  return item
+}
+
+function showDeckOverlay(ownerLabel, deck) {
+  showOverlay(
+    '<div class="overlay-content overlay-content--deck" role="dialog" aria-modal="true" aria-labelledby="deck-overlay-title">' +
+    '<div class="deck-overlay__header">' +
+    '<div>' +
+    `<div class="deck-overlay__eyebrow">${ownerLabel}</div>` +
+    `<h2 id="deck-overlay-title">${ownerLabel} Deck</h2>` +
+    `<p>${formatDeckCount(deck.length)} remaining in draw order.</p>` +
+    '</div>' +
+    '<button id="deck-overlay-close" class="deck-overlay__close" type="button" aria-label="Close deck view">Close</button>' +
+    '</div>' +
+    '<div id="deck-overlay-list" class="deck-overlay__list"></div>' +
+    '</div>'
+  )
+
+  const list = document.getElementById('deck-overlay-list')
+  if (!list) return
+
+  if (deck.length === 0) {
+    const empty = document.createElement('div')
+    empty.className = 'deck-overlay__empty'
+    empty.textContent = 'This deck is empty.'
+    list.appendChild(empty)
+  } else {
+    deck.forEach((card, index) => {
+      list.appendChild(createDeckListItem(card, index))
+    })
+  }
+
+  document.getElementById('deck-overlay-close')?.addEventListener('click', hideOverlay)
+}
+
+function bindDeckButtons() {
+  document.getElementById('player-deck-button')?.addEventListener('click', () => {
+    showDeckOverlay('Player', gameState.playerDeck)
+  })
+
+  document.getElementById('enemy-deck-button')?.addEventListener('click', () => {
+    showDeckOverlay('Opponent', gameState.enemyDeck)
   })
 }
 
@@ -521,6 +696,55 @@ async function animateRoundCleanup(playerReturnStates, drawnCards, enemyAliveIds
   await Promise.all(animations)
 }
 
+function showRewardOverlay(rewardChoices) {
+  showOverlay(
+    '<div class="overlay-content overlay-content--reward">' +
+    '<h2>Choose a Reward</h2>' +
+    '<p>Add 1 card to your deck, then face a fresh encounter.</p>' +
+    '<div id="reward-choices" class="reward-choices"></div>' +
+    '</div>'
+  )
+
+  const rewardChoicesEl = document.getElementById('reward-choices')
+  if (!rewardChoicesEl) return
+
+  rewardChoices.forEach((card) => {
+    const choiceButton = document.createElement('button')
+    choiceButton.type = 'button'
+    choiceButton.className = 'reward-choice'
+
+    const label = document.createElement('span')
+    label.className = 'reward-choice__label'
+    label.textContent = 'Add to deck'
+
+    const cardEl = createCardEl(card)
+    cardEl.classList.add('reward-choice__card')
+    cardEl.style.position = 'relative'
+    cardEl.style.left = '0'
+    cardEl.style.top = '0'
+    cardEl.style.cursor = 'pointer'
+
+    choiceButton.appendChild(cardEl)
+    choiceButton.appendChild(label)
+    choiceButton.addEventListener('click', () => {
+      const reward = claimReward(card.id)
+      if (!reward) return
+
+      hideOverlay()
+      drawCards()
+      updateRoundCounter()
+      renderEnemyBoard()
+      renderHand()
+      renderDeckButtons()
+      refreshVisibleCards()
+      reorderColumns()
+      syncResolveButton()
+    })
+
+    rewardChoicesEl.appendChild(choiceButton)
+  })
+}
+
 function resetCombatFlowState() {
   combatFlowState.active = false
   combatFlowState.finalizing = false
@@ -552,6 +776,7 @@ async function finalizeCombatFlow() {
   updateRoundCounter()
   renderEnemyBoard()
   renderHand()
+  renderDeckButtons()
   refreshVisibleCards()
   await animateRoundCleanup(playerReturnStates, drawnCards, enemyAliveIds)
   reorderColumns()
@@ -563,7 +788,7 @@ async function finalizeCombatFlow() {
 
   if (result.outcome === 'win') {
     syncResolveButton()
-    showOverlay('<div class="overlay-content"><h2>Victory!</h2><p>Enemy defeated.</p></div>')
+    showRewardOverlay(result.rewardChoices ?? [])
     return
   }
 
@@ -586,8 +811,8 @@ async function playCombatStep(stepResult) {
   clearCombatHighlights()
   highlightCombatPair(stepResult.slot)
 
-  const playerCard = findCardById(stepResult.player.id)
-  const enemyCard = findCardById(stepResult.enemy.id)
+  const playerCard = findPlayerCardById(stepResult.player.id)
+  const enemyCard = findEnemyCardById(stepResult.enemy.id)
   const playerEl = findPlayerCardEl(stepResult.player.id)
   const enemyEl = findEnemyCardEl(stepResult.enemy.id)
 
@@ -659,6 +884,40 @@ async function onResolve() {
   await startCombatFlow()
 }
 
+function serializeCardForText(card) {
+  if (!card) return null
+
+  return {
+    id: card.id,
+    name: card.name,
+    rps: card.rps,
+    role: card.role,
+    value: card.value,
+    hp: card.hp,
+    buffs: card.buffs,
+    ghostBuffer: Boolean(card.ghostBuffer),
+  }
+}
+
+function buildTextState() {
+  return {
+    coordinateSystem: 'origin at top-left, x right, y down',
+    phase: gameState.phase,
+    round: gameState.round,
+    playerDeckCount: gameState.playerDeck.length,
+    enemyDeckCount: gameState.enemyDeck.length,
+    playerDeck: gameState.playerDeck.map(serializeCardForText),
+    enemyDeck: gameState.enemyDeck.map(serializeCardForText),
+    playerHand: gameState.playerHand.map(serializeCardForText),
+    playerBoard: gameState.playerBoard.map(serializeCardForText),
+    enemyBoard: gameState.enemyBoard.map(serializeCardForText),
+    rewardChoices: gameState.rewardChoices.map(serializeCardForText),
+    overlayOpen: !document.getElementById('overlay')?.classList.contains('hidden'),
+    resolveButtonDisabled: document.getElementById('btn-resolve')?.disabled ?? true,
+    resolveButtonLabel: document.getElementById('btn-resolve')?.textContent ?? '',
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 function init() {
@@ -697,6 +956,7 @@ function init() {
   })
 
   document.getElementById('btn-resolve').addEventListener('click', onResolve)
+  bindDeckButtons()
 
   initRun()
   drawCards()
@@ -704,8 +964,12 @@ function init() {
   renderEnemyBoard()
   reorderColumns()
   renderHand()
+  renderDeckButtons()
   refreshVisibleCards()
   syncResolveButton()
+
+  window.render_game_to_text = () => JSON.stringify(buildTextState())
+  window.advanceTime = () => window.render_game_to_text()
 }
 
 if (document.getElementById('board')) {
