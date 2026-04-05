@@ -1,15 +1,16 @@
 export const CARD = {
-  width: 120,                          // card width in px
-  height: 168,                         // card height in px
-  borderRadius: 8,                     // corner rounding in px
-  bgColor: '#c1c5a8ff',                  // default card background color
-  outlineColor: '#eaeed2ff',           // card border color
-  outlineWidth: 2,                     // card border width in px
-  slotOutlineColor: '#f0c040',         // slot highlight color when a card is nearby
-  fontFamily: "'Gravitas One', serif",  // font family for card text (Google Font name)
-  fontSize: 38,                        // font size for card label text in px
-  padding: 8,                          // inner padding of the card in px
-  shadow: '1px 2px 4px rgba(0,0,0,0.25)',          // shadow when card is at rest
-  shadowLifted: '8px 16px 32px rgba(0,0,0,0.4)',   // shadow when card is held
-  hoverOutlineColor: '#ffd739ff',                     // card border color on hover
+  width: 120,                                    // card width in px
+  height: 168,                                   // card height in px
+  borderRadius: 8,                               // corner rounding in px
+  bgColor: 'oklch(96% 0.018 85)',               // warm cream paper
+  outlineColor: 'oklch(22% 0.03 265)',          // dark ink card border
+  outlineWidth: 2,                               // card border width in px
+  slotBorderColor: 'oklch(68% 0.09 85 / 0.45)', // muted gold slot border (resting)
+  slotOutlineColor: 'oklch(76% 0.13 85)',        // bright gold slot highlight when card is nearby
+  fontFamily: "'Gravitas One', serif",           // font family for card text
+  fontSize: 18,                                  // font size for card label text in px
+  padding: 8,                                    // inner padding of the card in px
+  shadow: '1px 3px 8px oklch(5% 0.04 152 / 0.45), 0 1px 3px oklch(5% 0.04 152 / 0.25)',
+  shadowLifted: '4px 14px 32px oklch(5% 0.04 152 / 0.62), 0 4px 10px oklch(5% 0.04 152 / 0.32)',
+  hoverOutlineColor: 'oklch(74% 0.13 85)',       // warm gold card border on hover
 }

@@ -8,87 +8,459 @@
 
 body {
   overflow: hidden;
-  background: #1a1a1a;
+  background: oklch(15% 0.04 152);
 }
+
+/* ── Board ──────────────────────────────────────────────── */
 
 #board {
   position: relative;
   width: 100vw;
   height: 100vh;
-  /* background set by JS from layout.config.js */
+  /* background-color set by JS (layout.config.js) */
 }
 
-/* Cards */
-.card {
+/* Felt crosshatch texture + vignette — renders above board bg, below cards */
+#board::before {
+  content: '';
   position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 22%, oklch(5% 0.03 152 / 0.76) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns%3D'http%3A//www.w3.org/2000/svg' width%3D'6' height%3D'6'%3E%3Cpath d%3D'M0 0L6 6M6 0L0 6' stroke%3D'%23ffffff' stroke-width%3D'0.4' stroke-opacity%3D'0.06'/%3E%3C/svg%3E");
+}
+
+/* ── Board emblem ───────────────────────────────────────── */
+
+.board-emblem {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'IM Fell English SC', serif;
+  font-size: clamp(0.7rem, 1.1vw, 1rem);
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: oklch(66% 0.08 85 / 0.45);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+/* ── Board areas ────────────────────────────────────────── */
+
+/* Both containers span the full board — used for grouping/z-index only.
+   Actual slot and card positions are calculated from viewport in main.js. */
+#enemy-board,
+#player-board {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#enemy-slots,
+#enemy-cards,
+#slots,
+#cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Cards inside #cards and #enemy-cards need pointer events */
+#cards .card,
+#enemy-cards .card {
+  pointer-events: auto;
+}
+
+/* ── HUD ────────────────────────────────────────────────── */
+
+#hud {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  z-index: 20;
+}
+
+#round-counter {
+  font-family: 'IM Fell English SC', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  color: oklch(66% 0.08 85 / 0.7);
+  user-select: none;
+}
+
+#btn-resolve {
+  font-family: 'IM Fell English SC', serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  padding: 0.5rem 1.4rem;
+  border-radius: 4px;
+  border: 1px solid oklch(68% 0.13 85 / 0.6);
+  background: oklch(32% 0.06 152 / 0.85);
+  color: oklch(88% 0.08 85);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+}
+
+#btn-resolve:hover:not(:disabled) {
+  background: oklch(38% 0.08 152);
+  border-color: oklch(76% 0.13 85 / 0.8);
+}
+
+#btn-resolve:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Overlay (reward / loss screens) ───────────────────── */
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: oklch(10% 0.03 152 / 0.82);
+  backdrop-filter: blur(4px);
+}
+
+#overlay.hidden {
+  display: none;
+}
+
+/* ── Cards ──────────────────────────────────────────────── */
+
+.card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
   cursor: grab;
   user-select: none;
-  /* width, height, borderRadius, bgColor, shadow set by JS from card.config.js */
   will-change: transform;
-  transition: box-shadow 0.15s ease, outline-color 0.15s ease;
+  transition: box-shadow 0.18s ease, outline-color 0.2s ease;
+  /* width, height, borderRadius, bgColor, padding, shadow set by JS */
 }
 
 .card:active {
   cursor: grabbing;
 }
 
-.card__face {
-  width: 100%;
-  height: 100%;
+/* ── Enemy card tint ────────────────────────────────────── */
+
+.card--enemy {
+  background-color: oklch(91% 0.025 15);  /* warm rose-cream */
+}
+
+.card--enemy .card__name {
+  color: oklch(24% 0.04 15);
+}
+
+.card--enemy .card__bot {
+  border-top-color: oklch(60% 0.05 15 / 0.25);
+}
+
+.card--enemy .card__effect,
+.card--enemy .card__hp {
+  color: oklch(42% 0.06 15 / 0.65);
+}
+
+/* ── Card top: name + role ──────────────────────────────── */
+
+.card__top {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.card__name {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: oklch(18% 0.025 265);
+  letter-spacing: -0.01em;
+}
+
+.card__role {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.card__role--attack   { color: oklch(50% 0.16 28); }
+.card__role--defense  { color: oklch(46% 0.11 240); }
+.card__role--support  { color: oklch(46% 0.12 152); }
+
+/* ── Card mid: RPS symbol ───────────────────────────────── */
+
+.card__mid {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-size: cover;
-  background-position: center;
-  border-radius: inherit;
-  overflow: hidden;
 }
 
-/* Slots */
+.card__rps-icon {
+  font-size: 30px;
+  line-height: 1;
+  filter: saturate(0.7) brightness(0.95);
+}
+
+/* ── Card bottom: effect text + HP ─────────────────────── */
+
+.card__bot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  border-top: 1px solid oklch(60% 0.02 265 / 0.22);
+  padding-top: 5px;
+}
+
+.card__effect {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 9px;
+  line-height: 1.3;
+  color: oklch(38% 0.04 265 / 0.72);
+  flex: 1;
+  min-width: 0;
+}
+
+.card__hp {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: oklch(38% 0.06 265 / 0.6);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Card RPS badge (legacy — unused in new layout) ─────── */
+
+.card__rps {
+  display: none;
+}
+
+/* ── Placement preview overlay ──────────────────────────── */
+
+.card__preview {
+  position: absolute;
+  /* sits over the .card__mid (RPS icon) area */
+  top: 33px;
+  bottom: 30px;
+  left: 4px;
+  right: 4px;
+  background: oklch(10% 0.02 265 / 0.82);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  pointer-events: none;
+}
+
+.card__preview-bonus {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: oklch(80% 0.18 85);
+  text-transform: uppercase;
+}
+
+.card__preview-rps {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+
+.card__preview-rps--advantage    { color: oklch(72% 0.2 142); }
+.card__preview-rps--neutral      { color: oklch(78% 0.14 85); }
+.card__preview-rps--disadvantage { color: oklch(68% 0.2 22); }
+
+.card__preview-dmg {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  color: oklch(78% 0.04 265 / 0.75);
+  letter-spacing: 0.03em;
+}
+
+.card__preview-hp {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+}
+
+.card__preview-hp--survive { color: oklch(72% 0.18 142); }
+.card__preview-hp--die     { color: oklch(68% 0.2 22); }
+
+/* ── Slots ──────────────────────────────────────────────── */
+
 .slot {
   position: absolute;
   border-style: dashed;
-  border-radius: inherit;
-  /* width, height, borderRadius, outlineColor, outlineWidth set by JS */
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  pointer-events: none;
+  /* width, height, borderRadius, position set by JS */
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+}
+
+/* Enemy slots — same visual base but slightly dimmer */
+.enemy-slot {
+  opacity: 0.7;
 }
 
 .slot--active {
-  /* slotOutlineColor applied by JS */
-  box-shadow: 0 0 12px 2px var(--slot-highlight-color, #f0c040);
+  border-style: solid;
+  border-color: oklch(76% 0.13 85) !important;
+  box-shadow:
+    0 0 22px 6px oklch(76% 0.13 85 / 0.32),
+    inset 0 0 18px oklch(76% 0.13 85 / 0.07);
 }
 
 .slot--occupied {
   border-style: solid;
-  opacity: 0.5;
+  opacity: 0.28;
 }
 
-/* Polish */
-.card {
-  color: rgb(99, 101, 83);
+/* ── RPS slot highlights (Phase 6) ─────────────────────── */
+
+.slot--advantage {
+  border-color: oklch(72% 0.18 142) !important; /* green */
+  box-shadow: 0 0 18px 4px oklch(72% 0.18 142 / 0.28);
 }
 
-.slot {
+.slot--neutral {
+  border-color: oklch(78% 0.14 85) !important;  /* gold/yellow */
+  box-shadow: 0 0 18px 4px oklch(78% 0.14 85 / 0.28);
+}
+
+.slot--disadvantage {
+  border-color: oklch(62% 0.2 22) !important;   /* red */
+  box-shadow: 0 0 18px 4px oklch(62% 0.2 22 / 0.28);
+}
+
+/* ── Card snap highlight ────────────────────────────────── */
+
+.card--snap-target {
+  outline: 2px solid oklch(76% 0.13 85 / 0.75) !important;
+  outline-offset: 4px;
+  box-shadow: 0 0 24px 8px oklch(76% 0.13 85 / 0.2) !important;
+}
+
+/* ── Overlay content ────────────────────────────────────── */
+
+.overlay-content {
+  text-align: center;
+  color: oklch(90% 0.06 85);
+  font-family: 'IM Fell English SC', serif;
+}
+
+.overlay-content h2 {
+  font-size: 2.4rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+}
+
+.overlay-content p {
+  font-size: 1rem;
+  opacity: 0.7;
+  margin-bottom: 1.5rem;
+}
+
+.overlay-content button {
+  font-family: 'IM Fell English SC', serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  padding: 0.5rem 1.6rem;
+  border-radius: 4px;
+  border: 1px solid oklch(68% 0.13 85 / 0.6);
+  background: oklch(32% 0.06 152 / 0.85);
+  color: oklch(88% 0.08 85);
+  cursor: pointer;
+}
+
+.overlay-content button:hover {
+  background: oklch(38% 0.08 152);
+}
+
+/* ── Rules panel ────────────────────────────────────────── */
+
+#rules-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 160px;
+  padding: 3rem 1rem 2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  z-index: 10;
   pointer-events: none;
 }
 
-/* Prevent text selection during drag */
+.rules-section { }
+
+.rules-title {
+  font-family: 'IM Fell English SC', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: oklch(66% 0.08 85 / 0.55);
+  margin-bottom: 0.3rem;
+}
+
+.rules-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-left: 0;
+}
+
+.rules-list li {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: oklch(70% 0.03 265 / 0.45);
+}
+
+.rules-list--ordered {
+  counter-reset: flow-steps;
+}
+
+.rules-list--ordered li {
+  counter-increment: flow-steps;
+  display: flex;
+  gap: 0.35em;
+}
+
+.rules-list--ordered li::before {
+  content: counter(flow-steps);
+  color: oklch(66% 0.09 85 / 0.4);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 0.8em;
+}
+
+/* ── Global ─────────────────────────────────────────────── */
+
 #board {
   user-select: none;
-}
-
-/* Smooth slot highlight transition */
-.slot--active {
-  border-color: var(--slot-highlight-color, #f0c040);
-  border-style: solid;
-}
-
-/* Card snap target highlight */
-.card--snap-target {
-  outline: 2px solid rgba(255, 255, 255, 0.7);
-  outline-offset: 3px;
-  box-shadow: 0 0 16px 4px rgba(255, 255, 255, 0.3);
 }

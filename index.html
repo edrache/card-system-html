@@ -3,16 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2d4f30" />
   <title>Card System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gravitas+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IM+Fell+English+SC&display=swap" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div id="board">
-    <div id="slots"></div>
-    <div id="cards"></div>
+    <div class="board-emblem">Card Table</div>
+
+    <div id="enemy-board">
+      <div id="enemy-slots"></div>
+      <div id="enemy-cards"></div>
+    </div>
+
+    <div id="player-board">
+      <div id="slots"></div>
+      <div id="cards"></div>
+    </div>
+
+    <div id="hud">
+      <div id="round-counter">Round 1</div>
+      <button id="btn-resolve" disabled>Resolve</button>
+    </div>
+
+    <div id="overlay" class="hidden"></div>
+
+    <aside id="rules-panel">
+      <section class="rules-section">
+        <h3 class="rules-title">Flow</h3>
+        <ol class="rules-list rules-list--ordered">
+          <li>Draw cards</li>
+          <li>Place all cards</li>
+          <li>Resolve combat</li>
+          <li>Repeat</li>
+        </ol>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">Combat</h3>
+        <ul class="rules-list">
+          <li>Each slot fights its pair</li>
+          <li>RPS win · +3 dmg</li>
+          <li>RPS loss · −3 dmg</li>
+          <li>Attack role · +2 dmg</li>
+          <li>Defense · −50% taken</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">First Card</h3>
+        <ul class="rules-list">
+          <li>RPS win · +3 buff</li>
+          <li>RPS tie · +1 buff</li>
+          <li>RPS loss · no bonus</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">Column Order</h3>
+        <ul class="rules-list">
+          <li>Stronger enemy = higher slot</li>
+          <li>Updates each round</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">RPS</h3>
+        <ul class="rules-list">
+          <li>✊ beats ✌️</li>
+          <li>✌️ beats ✋</li>
+          <li>✋ beats ✊</li>
+        </ul>
+      </section>
+    </aside>
   </div>
 
   <!-- GSAP from CDN -->

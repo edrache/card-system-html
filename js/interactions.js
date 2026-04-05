@@ -44,7 +44,7 @@ function findNearestFreeSlot(cardCenter) {
   let nearest = null
   let nearestDist = Infinity
 
-  document.querySelectorAll('.slot:not(.slot--occupied)').forEach(slotEl => {
+  document.querySelectorAll('.slot:not(.enemy-slot):not(.slot--occupied)').forEach(slotEl => {
     const dist = getDistance(cardCenter, getSlotCenter(slotEl))
     if (dist < ANIM.slotSnapRadius && dist < nearestDist) {
       nearest = slotEl
@@ -127,11 +127,20 @@ function snapCardToSlot(cardEl, slotEl) {
       cardEl.dataset.slotId = slotEl.dataset.id
       const draggable = Draggable.get(cardEl)
       if (draggable) draggable.update()
+      callbacks.onSnap?.(slotEl, cardEl)
     },
   })
 }
 
-export function initDrag(cardEl) {
+/**
+ * @param {HTMLElement} cardEl
+ * @param {Object}      [callbacks]
+ * @param {function(slotEl: HTMLElement, cardEl: HTMLElement): void} [callbacks.onSnap]
+ *   Called when a card successfully snaps into a player slot.
+ * @param {function(slotEl: HTMLElement, cardEl: HTMLElement): void} [callbacks.onUnsnap]
+ *   Called when a card is picked up from a slot it was occupying.
+ */
+export function initDrag(cardEl, callbacks = {}) {
   let isDragging = false
   let wiggleTween = null
 
@@ -156,7 +165,10 @@ export function initDrag(cardEl) {
       // If card was in a slot, free it
       if (cardEl.dataset.slotId) {
         const prevSlot = document.querySelector(`.slot[data-id="${cardEl.dataset.slotId}"]`)
-        if (prevSlot) prevSlot.classList.remove('slot--occupied')
+        if (prevSlot) {
+          prevSlot.classList.remove('slot--occupied')
+          callbacks.onUnsnap?.(prevSlot, cardEl)
+        }
         delete cardEl.dataset.slotId
       }
 
