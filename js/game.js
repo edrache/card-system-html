@@ -1,6 +1,7 @@
 import { GAME } from '../config/game.config.js'
 import { createDeck } from './cards-data.js'
-import { resolvePair, getRpsResult } from './combat.js'
+import { addBuffSource, clearBuffSourcesByScope, ensureBuffState, syncCardBuffs } from './buffs.js'
+import { resolvePair, getAdjacentAllies, getRpsResult } from './combat.js'
 import { createEnemyDeck, enemyRefillBoard } from './enemy.js'
 
 /**
@@ -21,6 +22,125 @@ export const gameState = {
   placementOrder: [],       // Card[] — tracks order cards were placed (for first-card bonus)
 }
 
+function getAllCardsInState() {
+  const uniqueCards = new Set()
+  const cards = []
+  const collections = [
+    gameState.playerDeck,
+    gameState.playerHand,
+    gameState.playerBoard,
+    gameState.enemyDeck,
+    gameState.enemyBoard,
+  ]
+
+  collections.forEach((group) => {
+    group.forEach((card) => {
+      if (!card || uniqueCards.has(card)) return
+      ensureBuffState(card)
+      uniqueCards.add(card)
+      cards.push(card)
+    })
+  })
+
+  return cards
+}
+
+function clearTemporaryBuffs() {
+  getAllCardsInState().forEach((card) => clearBuffSourcesByScope(card, 'temporary'))
+}
+
+function getSupportPlacementAmount(card) {
+  return card.effect?.buffAmount ?? GAME.SUPPORT_BUFF_AMOUNT
+}
+
+function applyFirstCardBonus() {
+  const firstPlacedCard = gameState.placementOrder.find((card) => gameState.playerBoard.includes(card))
+  if (!firstPlacedCard) return
+
+  const slotIndex = gameState.playerBoard.findIndex((card) => card === firstPlacedCard)
+  const enemyInSlot = gameState.enemyBoard[slotIndex]
+  if (!enemyInSlot) return
+
+  const result = getRpsResult(firstPlacedCard, enemyInSlot)
+  const bonusKey = `FIRST_CARD_BONUS_${result.toUpperCase()}`
+  const amount = GAME[bonusKey]
+  if (amount <= 0) return
+
+  addBuffSource(firstPlacedCard, {
+    id: `first-card:${gameState.round}:${firstPlacedCard.id}`,
+    amount,
+    label: 'First card bonus',
+    description: `RPS ${result} vs ${enemyInSlot.name} in this slot`,
+    scope: 'temporary',
+  })
+}
+
+function applySupportPlacementBuffs(board, ownerLabel) {
+  board.forEach((card, slotIndex) => {
+    if (!card || card.role !== 'support') return
+
+    const amount = getSupportPlacementAmount(card)
+    if (amount <= 0) return
+
+    const [leftAlly, rightAlly] = getAdjacentAllies(board, slotIndex)
+
+    if (leftAlly) {
+      addBuffSource(leftAlly, {
+        id: `support-placement:${ownerLabel}:${card.id}:${slotIndex}:left`,
+        amount,
+        label: `${card.name} support`,
+        description: `Adjacent ${card.name} on the right`,
+        scope: 'temporary',
+      })
+    }
+
+    if (rightAlly) {
+      addBuffSource(rightAlly, {
+        id: `support-placement:${ownerLabel}:${card.id}:${slotIndex}:right`,
+        amount,
+        label: `${card.name} support`,
+        description: `Adjacent ${card.name} on the left`,
+        scope: 'temporary',
+      })
+    }
+  })
+}
+
+function applySupportPostCombatBuffs(board, ownerLabel) {
+  board.forEach((card, slotIndex) => {
+    if (!card || card.role !== 'support' || card.hp <= 0) return
+
+    const [leftAlly, rightAlly] = getAdjacentAllies(board, slotIndex)
+    const amount = GAME.SUPPORT_BUFF_ON_SURVIVE
+
+    if (leftAlly && leftAlly.hp > 0) {
+      addBuffSource(leftAlly, {
+        id: `support-survive:${ownerLabel}:${gameState.round}:${card.id}:${leftAlly.id}:left`,
+        amount,
+        label: `${card.name} survived`,
+        description: `Adjacent ${card.name} survived combat on the right`,
+      })
+    }
+
+    if (rightAlly && rightAlly.hp > 0) {
+      addBuffSource(rightAlly, {
+        id: `support-survive:${ownerLabel}:${gameState.round}:${card.id}:${rightAlly.id}:right`,
+        amount,
+        label: `${card.name} survived`,
+        description: `Adjacent ${card.name} survived combat on the left`,
+      })
+    }
+  })
+}
+
+function recalculateBoardBuffs() {
+  clearTemporaryBuffs()
+  applyFirstCardBonus()
+  applySupportPlacementBuffs(gameState.playerBoard, 'player')
+  applySupportPlacementBuffs(gameState.enemyBoard, 'enemy')
+  getAllCardsInState().forEach((card) => syncCardBuffs(card))
+}
+
 // ── Initialisation ────────────────────────────────────────────────────────────
 
 /**
@@ -39,6 +159,7 @@ export function initRun() {
 
   // Enemy fills board immediately at start
   enemyRefillBoard(gameState.enemyBoard, gameState.enemyDeck)
+  recalculateBoardBuffs()
 }
 
 export function resetRun() {
@@ -60,6 +181,7 @@ export function drawCards() {
   }
   gameState.phase = 'placement'
   gameState.placementOrder = []
+  recalculateBoardBuffs()
 }
 
 // ── Placement phase ───────────────────────────────────────────────────────────
@@ -80,19 +202,11 @@ export function placeCard(cardId, slotIndex) {
   if (cardIdx === -1) return false
 
   const card = gameState.playerHand.splice(cardIdx, 1)[0]
+  ensureBuffState(card)
   gameState.playerBoard[slotIndex] = card
 
-  // First-card placement bonus
-  if (gameState.placementOrder.length === 0) {
-    const enemyInSlot = gameState.enemyBoard[slotIndex]
-    if (enemyInSlot) {
-      const result = getRpsResult(card, enemyInSlot)
-      const bonusKey = `FIRST_CARD_BONUS_${result.toUpperCase()}`
-      card.buffs = Math.min(card.buffs + GAME[bonusKey], GAME.BUFF_CAP)
-    }
-  }
-
   gameState.placementOrder.push(card)
+  recalculateBoardBuffs()
   return true
 }
 
@@ -107,10 +221,7 @@ export function unplaceCard(slotIndex) {
   gameState.playerBoard[slotIndex] = null
   gameState.playerHand.push(card)
   gameState.placementOrder = gameState.placementOrder.filter(c => c.id !== card.id)
-
-  // Remove first-card bonus if this card was first and is being recalled
-  // (bonus only applies to the first card placed — removing it revokes the bonus)
-  card.buffs = 0
+  recalculateBoardBuffs()
 
   return true
 }
@@ -135,6 +246,7 @@ export function resolveRound() {
   if (!canResolve()) return null
 
   gameState.phase = 'combat'
+  recalculateBoardBuffs()
   const log = []
 
   // Resolve each slot pair
@@ -163,6 +275,9 @@ export function resolveRound() {
     if (gameState.enemyBoard[i]?.hp <= 0) gameState.enemyBoard[i] = null
   }
 
+  applySupportPostCombatBuffs(gameState.playerBoard, 'player')
+  applySupportPostCombatBuffs(gameState.enemyBoard, 'enemy')
+
   // Surviving player cards return to hand
   for (let i = 0; i < GAME.SLOT_COUNT; i++) {
     const card = gameState.playerBoard[i]
@@ -174,6 +289,7 @@ export function resolveRound() {
 
   // Enemy refills board
   enemyRefillBoard(gameState.enemyBoard, gameState.enemyDeck)
+  recalculateBoardBuffs()
 
   gameState.round += 1
 

@@ -1,9 +1,10 @@
 import { CARD } from '../config/card.config.js'
 import { LAYOUT } from '../config/layout.config.js'
 import { GAME } from '../config/game.config.js'
+import { getBuffSummary } from './buffs.js'
 import { initDrag } from './interactions.js'
 import { gameState, initRun, drawCards, placeCard, unplaceCard, resolveRound } from './game.js'
-import { getRpsResult, calcDamage } from './combat.js'
+import { getDamageBreakdown } from './combat.js'
 import { syncResolveButton, updateRoundCounter, setCardHpLabel, logRoundResult, showOverlay } from './ui.js'
 
 const RPS_ICON   = { rock: '✊', paper: '✋', scissors: '✌️' }
@@ -16,6 +17,214 @@ const enemySlotEls  = []  // enemySlotEls[i]  = enemy slot element at index i
 const enemyCardEls  = []  // enemyCardEls[i]  = enemy card element at index i (null if empty)
 
 // ── Element factories ─────────────────────────────────────────────────────────
+
+function createTooltipRow(text, extraClass = '') {
+  const item = document.createElement('li')
+  item.className = extraClass ? `card__tooltip-item ${extraClass}` : 'card__tooltip-item'
+  item.textContent = text
+  return item
+}
+
+function formatSignedAmount(amount) {
+  return `${amount >= 0 ? '+' : ''}${amount}`
+}
+
+function getCombatProjection(playerCard, slotIndex) {
+  const enemyCard = gameState.enemyBoard[slotIndex]
+  if (!enemyCard) return null
+
+  const playerBreakdown = getDamageBreakdown(playerCard, enemyCard)
+  const enemyBreakdown = getDamageBreakdown(enemyCard, playerCard)
+  const playerAfterHp = Math.max(0, playerCard.hp - enemyBreakdown.finalDamage)
+  const enemyAfterHp = Math.max(0, enemyCard.hp - playerBreakdown.finalDamage)
+
+  let outcome = 'clash'
+  let label = 'CLASH'
+  if (enemyAfterHp <= 0 && playerAfterHp > 0) {
+    outcome = 'win'
+    label = 'WIN'
+  } else if (playerAfterHp <= 0 && enemyAfterHp > 0) {
+    outcome = 'lose'
+    label = 'LOSE'
+  } else if (playerAfterHp <= 0 && enemyAfterHp <= 0) {
+    outcome = 'trade'
+    label = 'TRADE'
+  }
+
+  return {
+    enemyCard,
+    playerBreakdown,
+    enemyBreakdown,
+    playerAfterHp,
+    enemyAfterHp,
+    outcome,
+    label,
+    rps: playerBreakdown.rps,
+  }
+}
+
+function formatAttackLine(label, breakdown) {
+  const parts = [`${breakdown.baseAttack} base`]
+
+  if (breakdown.buffAttack > 0) {
+    parts.push(`${formatSignedAmount(breakdown.buffAttack)} buff`)
+  }
+
+  breakdown.attackModifiers.forEach((modifier) => {
+    parts.push(`${formatSignedAmount(modifier.amount)} ${modifier.label}`)
+  })
+
+  let text = `${label}: ${parts.join(', ')} = ${breakdown.rawAttack}`
+  if (breakdown.reduction > 0) {
+    text += `, block ${breakdown.reduction}`
+  }
+  text += `, final ${breakdown.finalDamage}`
+  return text
+}
+
+function formatDefenseLine(label, breakdown) {
+  if (breakdown.reduction <= 0) {
+    return `${label}: no active reduction`
+  }
+
+  const details = breakdown.reductionSources
+    .map((source) => `${formatSignedAmount(source.amount)} ${source.label}`)
+    .join(', ')
+
+  return `${label}: ${details} = ${breakdown.reduction}`
+}
+
+function createCardTooltip(card, summary, effectiveValue, combatProjection = null) {
+  const tooltip = document.createElement('div')
+  tooltip.className = 'card__tooltip'
+
+  const title = document.createElement('div')
+  title.className = 'card__tooltip-title'
+  title.textContent = `Value ${effectiveValue}`
+
+  const list = document.createElement('ul')
+  list.className = 'card__tooltip-list'
+  list.appendChild(createTooltipRow(`Base value ${card.value}`))
+
+  if (summary.sources.length === 0) {
+    list.appendChild(createTooltipRow('No active modifiers'))
+  } else {
+    summary.sources.forEach((source) => {
+      const sign = source.amount >= 0 ? '+' : ''
+      list.appendChild(
+        createTooltipRow(`${sign}${source.amount} ${source.label}: ${source.description}`)
+      )
+    })
+  }
+
+  if (summary.cappedBy > 0) {
+    list.appendChild(
+      createTooltipRow(`-${summary.cappedBy} Buff cap: maximum bonus is ${GAME.BUFF_CAP}`, 'card__tooltip-item--cap')
+    )
+  }
+
+  if (combatProjection) {
+    list.appendChild(createTooltipRow(`Combat ${combatProjection.label} (${combatProjection.rps})`, 'card__tooltip-item--combat'))
+    list.appendChild(createTooltipRow(formatAttackLine('Your attack', combatProjection.playerBreakdown), 'card__tooltip-item--combat'))
+    list.appendChild(createTooltipRow(formatDefenseLine('Your defense', combatProjection.enemyBreakdown), 'card__tooltip-item--combat'))
+    list.appendChild(createTooltipRow(formatAttackLine(`${combatProjection.enemyCard.name} attack`, combatProjection.enemyBreakdown), 'card__tooltip-item--combat'))
+    list.appendChild(
+      createTooltipRow(
+        `HP change: you ${card.hp} -> ${combatProjection.playerAfterHp}, enemy ${combatProjection.enemyCard.hp} -> ${combatProjection.enemyAfterHp}`,
+        'card__tooltip-item--combat'
+      )
+    )
+  }
+
+  const footer = document.createElement('div')
+  footer.className = 'card__tooltip-footer'
+  footer.textContent = `HP ${card.hp}/${card.value}`
+
+  tooltip.appendChild(title)
+  tooltip.appendChild(list)
+  tooltip.appendChild(footer)
+  return tooltip
+}
+
+function updateValueCluster(cardEl, summary, effectiveValue) {
+  const valueCluster = cardEl.querySelector('.card__value-cluster')
+  const valueEl = cardEl.querySelector('.card__value')
+  if (!valueCluster || !valueEl) return
+
+  valueEl.textContent = `${effectiveValue}`
+  valueEl.classList.toggle('card__value--modified', summary.total > 0 || summary.cappedBy > 0)
+
+  const existingDelta = valueCluster.querySelector('.card__value-delta')
+  if (summary.total > 0) {
+    if (existingDelta) {
+      existingDelta.textContent = `+${summary.total}`
+    } else {
+      const delta = document.createElement('div')
+      delta.className = 'card__value-delta'
+      delta.textContent = `+${summary.total}`
+      valueCluster.appendChild(delta)
+    }
+  } else {
+    existingDelta?.remove()
+  }
+}
+
+function updateCombatBadge(cardEl, combatProjection = null) {
+  const existing = cardEl.querySelector('.card__combat-badge')
+  if (!combatProjection) {
+    existing?.remove()
+    return
+  }
+
+  const badge = existing ?? document.createElement('div')
+  badge.className = `card__combat-badge card__combat-badge--${combatProjection.outcome}`
+  badge.textContent = combatProjection.label
+
+  if (!existing) {
+    cardEl.querySelector('.card__top')?.appendChild(badge)
+  }
+}
+
+function updateCardPresentation(cardEl, card, combatProjection = null) {
+  const summary = getBuffSummary(card)
+  const effectiveValue = card.value + summary.total
+
+  updateValueCluster(cardEl, summary, effectiveValue)
+  setCardHpLabel(cardEl, card.hp)
+
+  const oldTooltip = cardEl.querySelector('.card__tooltip')
+  const newTooltip = createCardTooltip(card, summary, effectiveValue, combatProjection)
+  if (oldTooltip) {
+    oldTooltip.replaceWith(newTooltip)
+  } else {
+    cardEl.appendChild(newTooltip)
+  }
+
+  updateCombatBadge(cardEl, combatProjection)
+}
+
+function findCardById(cardId) {
+  const allCards = [
+    ...gameState.playerHand,
+    ...gameState.playerBoard,
+    ...gameState.enemyBoard,
+    ...gameState.playerDeck,
+    ...gameState.enemyDeck,
+  ]
+
+  return allCards.find((card) => card?.id === cardId) ?? null
+}
+
+function refreshVisibleCards() {
+  document.querySelectorAll('#cards .card, #enemy-cards .card').forEach((cardEl) => {
+    const card = findCardById(cardEl.dataset.id)
+    if (!card) return
+
+    const slotIndex = cardEl.dataset.slotId ? slotIdToIndex(cardEl.dataset.slotId) : -1
+    const combatProjection = slotIndex >= 0 ? getCombatProjection(card, slotIndex) : null
+    updateCardPresentation(cardEl, card, combatProjection)
+  })
+}
 
 export function createCardEl(card, isEnemy = false) {
   const el = document.createElement('div')
@@ -35,15 +244,27 @@ export function createCardEl(card, isEnemy = false) {
   const top = document.createElement('div')
   top.className = 'card__top'
 
+  const header = document.createElement('div')
+  header.className = 'card__header'
+
   const name = document.createElement('div')
   name.className = 'card__name'
   name.textContent = card.name ?? ''
+
+  const valueCluster = document.createElement('div')
+  valueCluster.className = 'card__value-cluster'
+
+  const value = document.createElement('div')
+  value.className = 'card__value'
+  valueCluster.appendChild(value)
 
   const role = document.createElement('div')
   role.className = `card__role card__role--${card.role ?? ''}`
   role.textContent = card.role ?? ''
 
-  top.appendChild(name)
+  header.appendChild(name)
+  header.appendChild(valueCluster)
+  top.appendChild(header)
   top.appendChild(role)
 
   // Mid: large RPS symbol
@@ -73,6 +294,7 @@ export function createCardEl(card, isEnemy = false) {
   el.appendChild(top)
   el.appendChild(mid)
   el.appendChild(bot)
+  updateCardPresentation(el, card)
 
   return el
 }
@@ -168,65 +390,6 @@ function reorderColumns() {
   }
 }
 
-// ── Placement preview ─────────────────────────────────────────────────────────
-
-/**
- * Shows a combat-preview overlay on a placed card.
- * Accounts for RPS modifier, role bonuses, card effects, and first-card buff.
- */
-function showPlacementPreview(cardEl, playerCard, slotIndex) {
-  clearPlacementPreview(cardEl)
-
-  const enemyCard = gameState.enemyBoard[slotIndex]
-  if (!enemyCard) return
-
-  const rps     = getRpsResult(playerCard, enemyCard)
-  const dealt   = calcDamage(playerCard, enemyCard)
-  const taken   = calcDamage(enemyCard, playerCard)
-  const afterHp = playerCard.hp - taken
-
-  const isFirst      = gameState.placementOrder.length === 1
-  const firstBonus   = isFirst ? playerCard.buffs : 0   // buffs already applied by placeCard
-
-  const preview = document.createElement('div')
-  preview.className = 'card__preview'
-
-  // RPS line
-  const rpsLine = document.createElement('div')
-  rpsLine.className = `card__preview-rps card__preview-rps--${rps}`
-  const rpsLabel = rps === 'advantage' ? '↑ WIN' : rps === 'disadvantage' ? '↓ LOSE' : '= TIE'
-  rpsLine.textContent = rpsLabel
-
-  // First-card bonus
-  if (firstBonus > 0) {
-    const bonusLine = document.createElement('div')
-    bonusLine.className = 'card__preview-bonus'
-    bonusLine.textContent = `+${firstBonus} buff`
-    preview.appendChild(bonusLine)
-  }
-
-  // Damage line
-  const dmgLine = document.createElement('div')
-  dmgLine.className = 'card__preview-dmg'
-  dmgLine.textContent = `${dealt} ↔ ${taken}`
-
-  // HP projection
-  const hpLine = document.createElement('div')
-  const survives = afterHp > 0
-  hpLine.className = `card__preview-hp card__preview-hp--${survives ? 'survive' : 'die'}`
-  hpLine.textContent = `♥ ${playerCard.hp} → ${Math.max(0, afterHp)}`
-
-  preview.appendChild(rpsLine)
-  preview.appendChild(dmgLine)
-  preview.appendChild(hpLine)
-
-  cardEl.appendChild(preview)
-}
-
-function clearPlacementPreview(cardEl) {
-  cardEl.querySelector('.card__preview')?.remove()
-}
-
 // ── Hand rendering ────────────────────────────────────────────────────────────
 
 function renderHand() {
@@ -247,14 +410,13 @@ function renderHand() {
       onSnap(slotEl, cardEl) {
         const slotIndex  = slotIdToIndex(slotEl.dataset.id)
         placeCard(cardEl.dataset.id, slotIndex)
-        const playerCard = gameState.playerBoard[slotIndex]
-        if (playerCard) showPlacementPreview(cardEl, playerCard, slotIndex)
+        refreshVisibleCards()
         syncResolveButton()
       },
       onUnsnap(slotEl, cardEl) {
         const slotIndex = slotIdToIndex(slotEl.dataset.id)
         unplaceCard(slotIndex)
-        clearPlacementPreview(cardEl)
+        refreshVisibleCards()
         syncResolveButton()
       },
     })
@@ -316,6 +478,7 @@ function onResolve() {
   renderEnemyBoard()
   reorderColumns()
   renderHand()
+  refreshVisibleCards()
   syncResolveButton()
 }
 
@@ -357,6 +520,7 @@ function init() {
   renderEnemyBoard()
   reorderColumns()
   renderHand()
+  refreshVisibleCards()
   syncResolveButton()
 }
 

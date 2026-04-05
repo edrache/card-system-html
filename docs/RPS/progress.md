@@ -153,10 +153,10 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 
 | Zadanie | Status |
 |---|---|
-| getAdjacentAllies() w combat.js | 🔲 |
-| activateSupportOnPlacement() | 🔲 |
-| activateSupportPostCombat() | 🔲 |
-| Edge case: Fragile Buffer (buffAmount: 2) | 🔲 |
+| getAdjacentAllies() w combat.js | ✅ |
+| activateSupportOnPlacement() | ✅ |
+| activateSupportPostCombat() | ✅ |
+| Edge case: Fragile Buffer (buffAmount: 2) | ✅ |
 | Edge case: Persistent Buffer (ghostBuffer po śmierci) | 🔲 |
 
 ---
@@ -179,6 +179,7 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 | Combat preview na placement (projected damage overlay) | ✅ zrobione poza kolejnością (patrz sekcja Visual polish) |
 | Kolorowanie slotów wg RPS: zielony/żółty/czerwony | 🔲 (CSS klasy już istnieją: `.slot--advantage`, `.slot--neutral`, `.slot--disadvantage`) |
 | Numeracja kolejności rozstrzygania na kartach wroga | 🔲 |
+| Jawne pochodzenie modyfikatorów na kartach | ✅ |
 
 ---
 
@@ -189,3 +190,51 @@ Kolumny (para: enemy slot + player slot) sortowane wg siły przeciwnika każdą 
 | Reward screen (wybór 1 z 3 kart) | 🔲 |
 | Ekran przegranej z Restart | ✅ (loss overlay z btn-restart w main.js) |
 | game.js resetRun() | ✅ (resetRun zaimplementowany, używa location.reload()) |
+
+---
+
+## 2026-04-05 Verification + bugfix
+
+- Fixed a real drag-and-drop regression in `js/interactions.js`: `snapCardToSlot()` called `callbacks.onSnap` without receiving `callbacks`, which caused `ReferenceError: callbacks is not defined` after placing a card.
+- Added `tests/game-logic-smoke.mjs` for fast module-level verification of combat, placement bonus, draw flow, round resolution, and win state.
+- Added `tests/rps_browser_smoke.py` for Playwright browser smoke coverage of the live prototype: load page, drag 3 cards into slots, assert no page/runtime errors, and confirm `Resolve` becomes enabled.
+- Extended `tests/rps_browser_smoke.py` to click `Resolve` and verify post-combat rerender (`Round 2`, new hand, refreshed enemy board, no slotted cards left, no runtime errors).
+- Browser smoke passed with artifacts written to `output/browser-smoke/`:
+  - `after-placement.png`
+  - `after-resolve.png`
+  - `state.json` (`slotted_cards: 3`, `resolve_enabled: true`, no console/page errors)
+
+---
+
+## 2026-04-05 Buff provenance + support readability
+
+- Added runtime `buffSources` tracking in `js/buffs.js` so card modifiers are no longer opaque integer mutations; each buff now carries `amount`, `label`, `description`, and `scope`.
+- Reworked `game.js` to recalculate temporary placement buffs deterministically after each place/unplace/refill:
+  - first-card bonus is now temporary and no longer leaks permanently into later rounds
+  - support cards now buff adjacent allies on placement
+  - surviving support cards now grant persistent post-combat buffs to adjacent survivors
+  - Fragile Buffer now uses `effect.buffAmount` for its stronger adjacency buff
+- Added visible value badges to cards in `main.js` / `css/style.css`:
+  - base value + active buffs shown as the current value
+  - modified values get a highlighted circular badge and `+N` delta chip
+  - hover tooltip lists base value, every active modifier source, buff-cap reduction (if any), and current HP
+- Browser smoke extended to assert the new value badge + tooltip DOM is present after card placement.
+- Module smoke extended to verify:
+  - support adjacency buffs are applied
+  - first-card bonus is cleared after round resolution
+  - post-combat support buffs persist onto surviving cards
+
+**Open follow-up:** `Persistent Buffer` ghost behavior (`persistBuffTurns`) is still not implemented; current provenance system is ready for it, but the death-phase board retention logic still needs to be added.
+
+---
+
+## 2026-04-05 Combat preview UX pass
+
+- Removed the old on-card `card__preview` combat overlay from placement; it obscured the card face too much.
+- Added a compact persistent combat badge on slotted player cards (`WIN` / `LOSE` / `TRADE` / `CLASH`) so the expected fight result is visible without hover.
+- Moved the detailed fight preview into the hover tooltip:
+  - player attack breakdown
+  - player defense / reduction breakdown
+  - enemy attack breakdown
+  - HP change for both sides after the projected combat
+- Added `getDamageBreakdown()` in `js/combat.js` as the shared source for tooltip combat explanations and future combat-debug UX.

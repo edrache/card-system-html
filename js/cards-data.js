@@ -22,6 +22,7 @@ const CARD_DEFINITIONS = [
     effectText: null,
     hp: 6,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'aggressor-4',
@@ -33,6 +34,7 @@ const CARD_DEFINITIONS = [
     effectText: null,
     hp: 4,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'glass-cannon-5',
@@ -44,6 +46,7 @@ const CARD_DEFINITIONS = [
     effectText: 'Takes +1 damage',
     hp: 5,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'opportunist-3',
@@ -55,6 +58,7 @@ const CARD_DEFINITIONS = [
     effectText: '+2 dmg on RPS win',
     hp: 3,
     buffs: 0,
+    buffSources: [],
   },
 
   // ── Defense cards ─────────────────────────────────────────────
@@ -68,6 +72,7 @@ const CARD_DEFINITIONS = [
     effectText: null,
     hp: 6,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'shield-4',
@@ -79,6 +84,7 @@ const CARD_DEFINITIONS = [
     effectText: '−1 extra dmg taken',
     hp: 4,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'reactive-guard-3',
@@ -90,6 +96,7 @@ const CARD_DEFINITIONS = [
     effectText: '+2 block on RPS loss',
     hp: 3,
     buffs: 0,
+    buffSources: [],
   },
 
   // ── Support cards ─────────────────────────────────────────────
@@ -103,6 +110,7 @@ const CARD_DEFINITIONS = [
     effectText: 'Buffs adjacent allies',
     hp: 3,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'fragile-buffer-2',
@@ -114,6 +122,7 @@ const CARD_DEFINITIONS = [
     effectText: 'Gives +2 buff (not +1)',
     hp: 2,
     buffs: 0,
+    buffSources: [],
   },
   {
     id: 'persistent-buffer-4',
@@ -125,5 +134,6 @@ const CARD_DEFINITIONS = [
     effectText: 'Buff survives 1 turn',
     hp: 4,
     buffs: 0,
+    buffSources: [],
   },
 ]

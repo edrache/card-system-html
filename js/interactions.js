@@ -105,7 +105,7 @@ function snapCardToCard(cardEl, targetCardEl) {
   })
 }
 
-function snapCardToSlot(cardEl, slotEl) {
+function snapCardToSlot(cardEl, slotEl, callbacks = {}) {
   const slotRect = slotEl.getBoundingClientRect()
   const boardRect = document.getElementById('board').getBoundingClientRect()
 
@@ -160,6 +160,7 @@ export function initDrag(cardEl, callbacks = {}) {
     type: 'x,y',
     onPress() {
       isDragging = true
+      cardEl.classList.add('card--dragging')
       if (wiggleTween) { wiggleTween.kill(); wiggleTween = null }
       gsap.set(cardEl, { rotateZ: 0 })
       // If card was in a slot, free it
@@ -198,6 +199,7 @@ export function initDrag(cardEl, callbacks = {}) {
     },
     onClick() {
       isDragging = false
+      cardEl.classList.remove('card--dragging')
       gsap.to(cardEl, {
         scale: 1,
         boxShadow: CARD.shadow,
@@ -207,6 +209,7 @@ export function initDrag(cardEl, callbacks = {}) {
     },
     onDragEnd() {
       isDragging = false
+      cardEl.classList.remove('card--dragging')
       clearSlotHighlights()
       clearCardHighlights()
       const cardCenter = getCardCenter(cardEl)
@@ -214,7 +217,7 @@ export function initDrag(cardEl, callbacks = {}) {
       const nearestCard = findNearestCard(cardEl, cardCenter)
 
       if (nearestSlot) {
-        snapCardToSlot(cardEl, nearestSlot)
+        snapCardToSlot(cardEl, nearestSlot, callbacks)
       } else if (nearestCard) {
         snapCardToCard(cardEl, nearestCard)
       } else {

@@ -18,53 +18,103 @@ export function getRpsResult(attacker, defender) {
 }
 
 /**
+ * Returns adjacent allies in a 3-slot row.
+ * @returns {[object|null, object|null]} [leftCard, rightCard]
+ */
+export function getAdjacentAllies(board, slotIndex) {
+  return [
+    board[slotIndex - 1] ?? null,
+    board[slotIndex + 1] ?? null,
+  ]
+}
+
+/**
  * Returns net damage dealt by attacker to defender (minimum 0).
  * Reads card.buffs from both sides.
  */
-export function calcDamage(attacker, defender) {
+export function getDamageBreakdown(attacker, defender) {
   const rps = getRpsResult(attacker, defender)
 
   // Base damage: attacker value + buffs
-  let damage = attacker.value + attacker.buffs
+  let rawAttack = attacker.value + attacker.buffs
+  const attackModifiers = []
 
   // RPS modifier
-  if (rps === 'advantage') damage += GAME.RPS_MODIFIER
-  if (rps === 'disadvantage') damage -= GAME.RPS_MODIFIER
+  if (rps === 'advantage') {
+    rawAttack += GAME.RPS_MODIFIER
+    attackModifiers.push({ label: 'RPS advantage', amount: GAME.RPS_MODIFIER })
+  }
+  if (rps === 'disadvantage') {
+    rawAttack -= GAME.RPS_MODIFIER
+    attackModifiers.push({ label: 'RPS disadvantage', amount: -GAME.RPS_MODIFIER })
+  }
 
   // Attack role bonus
   if (attacker.role === 'attack') {
-    damage += GAME.ATTACK_BONUS
+    rawAttack += GAME.ATTACK_BONUS
+    attackModifiers.push({ label: 'Attack role', amount: GAME.ATTACK_BONUS })
   }
 
   // Opportunist effect: +2 on RPS advantage
   if (attacker.effect?.bonusDamageOnAdvantage && rps === 'advantage') {
-    damage += attacker.effect.bonusDamageOnAdvantage
+    rawAttack += attacker.effect.bonusDamageOnAdvantage
+    attackModifiers.push({
+      label: 'Opportunist effect',
+      amount: attacker.effect.bonusDamageOnAdvantage,
+    })
   }
 
   // Defense reduction (defender's own reduction)
   let reduction = 0
+  const reductionSources = []
   if (defender.role === 'defense') {
     reduction = Math.floor(defender.value * GAME.DEFENSE_REDUCTION) + (defender.buffs ?? 0)
+    reductionSources.push({
+      label: 'Defense role',
+      amount: Math.floor(defender.value * GAME.DEFENSE_REDUCTION),
+    })
+    if ((defender.buffs ?? 0) > 0) {
+      reductionSources.push({ label: 'Buffs to defense', amount: defender.buffs ?? 0 })
+    }
   }
 
   // Shield effect: extra -1 after standard reduction
   if (defender.effect?.extraReduction) {
     reduction += defender.effect.extraReduction
+    reductionSources.push({ label: 'Shield effect', amount: defender.effect.extraReduction })
   }
 
   // Reactive Guard: +2 reduction when at RPS disadvantage (i.e. attacker has advantage)
   if (defender.effect?.bonusReductionOnDisadvantage && rps === 'advantage') {
     reduction += defender.effect.bonusReductionOnDisadvantage
+    reductionSources.push({
+      label: 'Reactive Guard effect',
+      amount: defender.effect.bonusReductionOnDisadvantage,
+    })
   }
 
-  damage -= reduction
+  let damage = rawAttack - reduction
 
   // Glass Cannon: takes +1 extra damage
   if (defender.effect?.extraDamageTaken) {
     damage += defender.effect.extraDamageTaken
+    attackModifiers.push({ label: 'Glass Cannon penalty', amount: defender.effect.extraDamageTaken })
   }
 
-  return Math.max(0, damage)
+  return {
+    rps,
+    baseAttack: attacker.value,
+    buffAttack: attacker.buffs ?? 0,
+    rawAttack,
+    attackModifiers,
+    reduction,
+    reductionSources,
+    finalDamage: Math.max(0, damage),
+  }
+}
+
+export function calcDamage(attacker, defender) {
+  return getDamageBreakdown(attacker, defender).finalDamage
 }
 
 /**
