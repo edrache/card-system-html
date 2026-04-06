@@ -13,7 +13,33 @@
 </head>
 <body>
   <div id="board">
-    <div class="board-emblem">Tutorial</div>
+    <div class="board-emblem">Field Manual</div>
+
+    <div id="deck-panel" aria-label="Tutorial board state">
+      <button id="enemy-deck-button" class="deck-button deck-button--enemy" type="button" tabindex="-1" aria-hidden="true">
+        <span class="deck-button__eyebrow">Opponent</span>
+        <span class="deck-button__title">Deck</span>
+        <span id="enemy-deck-count" class="deck-button__count">0 cards</span>
+      </button>
+
+      <button id="enemy-cemetery-button" class="deck-button deck-button--cemetery" type="button" tabindex="-1" aria-hidden="true">
+        <span class="deck-button__eyebrow">Opponent</span>
+        <span class="deck-button__title">Cemetery</span>
+        <span id="enemy-cemetery-count" class="deck-button__count">0 cards</span>
+      </button>
+
+      <button id="player-deck-button" class="deck-button deck-button--player" type="button" tabindex="-1" aria-hidden="true">
+        <span class="deck-button__eyebrow">Player</span>
+        <span class="deck-button__title">Deck</span>
+        <span id="player-deck-count" class="deck-button__count">0 cards</span>
+      </button>
+
+      <button id="player-cemetery-button" class="deck-button deck-button--cemetery" type="button" tabindex="-1" aria-hidden="true">
+        <span class="deck-button__eyebrow">Player</span>
+        <span class="deck-button__title">Cemetery</span>
+        <span id="player-cemetery-count" class="deck-button__count">0 cards</span>
+      </button>
+    </div>
 
     <div id="enemy-board">
       <div id="enemy-slots"></div>
@@ -31,6 +57,56 @@
     </div>
 
     <div id="overlay" class="hidden"></div>
+
+    <aside id="rules-panel" aria-label="Tutorial quick guide">
+      <section class="rules-section">
+        <h3 class="rules-title">Loop</h3>
+        <ol class="rules-list rules-list--ordered">
+          <li>Draw to fill open slots</li>
+          <li>Place your row</li>
+          <li>Resolve in placement order</li>
+          <li>Repeat until one side runs dry</li>
+        </ol>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">Value</h3>
+        <ul class="rules-list">
+          <li>Value is both HP and roll ceiling</li>
+          <li>Value 7 means a roll from 1 to 7</li>
+          <li>Higher value is wider range, not certainty</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">RPS</h3>
+        <ul class="rules-list">
+          <li>✊ beats ✌️</li>
+          <li>✌️ beats ✋</li>
+          <li>✋ beats ✊</li>
+          <li>Winner rolls twice and keeps the higher result</li>
+          <li>Tie: lower roll hits both cards</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">Roles</h3>
+        <ul class="rules-list">
+          <li>Attack adds +1 to its roll</li>
+          <li>Defense reduces incoming damage by 1</li>
+          <li>Support adds +1 range to adjacent allies</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">Read The Board</h3>
+        <ul class="rules-list">
+          <li>1st, 2nd, 3rd markers show fight order</li>
+          <li>Destroyed cards move to the Cemetery</li>
+          <li>Hover cards to inspect roll ranges</li>
+        </ul>
+      </section>
+      <section class="rules-section">
+        <h3 class="rules-title">Skip</h3>
+        <a class="rules-tutorial-link" href="index.html">Enter the full game</a>
+      </section>
+    </aside>
   </div>
 
   <div id="tutorial-progress">

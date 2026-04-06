@@ -18,23 +18,25 @@ import { initDrag } from './interactions.js'
 const TOTAL_STEPS = 25
 
 const CHAPTER_TITLES = {
-  1: 'Chapter 1\nThe Board and Cards',
-  2: 'Chapter 2\nPhases and Combat',
-  3: 'Chapter 3\nModifiers',
-  4: 'Chapter 4\nAdvanced',
+  1: 'Chapter 1\nRead the Table',
+  2: 'Chapter 2\nRound Flow',
+  3: 'Chapter 3\nCombat Math',
+  4: 'Chapter 4\nFinish the Run',
 }
 
 const CARD_LIBRARY = new Map([
-  ['aggressor-6', { id: 'aggressor-6', name: 'Aggressor', rps: 'rock', value: 6, role: 'attack', effect: null, effectText: null }],
-  ['aggressor-4', { id: 'aggressor-4', name: 'Aggressor', rps: 'scissors', value: 4, role: 'attack', effect: null, effectText: null }],
-  ['glass-cannon-5', { id: 'glass-cannon-5', name: 'Glass Cannon', rps: 'scissors', value: 5, role: 'attack', effect: { extraDamageTaken: 1 }, effectText: 'On hit 0/-1' }],
-  ['opportunist-3', { id: 'opportunist-3', name: 'Opportunist', rps: 'paper', value: 3, role: 'attack', effect: { bonusDamageOnAdvantage: 2 }, effectText: 'RPS win +2/0' }],
-  ['defender-6', { id: 'defender-6', name: 'Defender', rps: 'rock', value: 6, role: 'defense', effect: null, effectText: null }],
-  ['shield-4', { id: 'shield-4', name: 'Shield', rps: 'paper', value: 4, role: 'defense', effect: { extraReduction: 1 }, effectText: 'On hit block +1' }],
-  ['reactive-guard-3', { id: 'reactive-guard-3', name: 'Reactive Guard', rps: 'scissors', value: 3, role: 'defense', effect: { bonusReductionOnDisadvantage: 2 }, effectText: 'RPS loss block +2' }],
-  ['buffer-3', { id: 'buffer-3', name: 'Buffer', rps: 'paper', value: 3, role: 'support', effect: null, effectText: 'Adjacent allies +1/0' }],
-  ['fragile-buffer-2', { id: 'fragile-buffer-2', name: 'Fragile Buffer', rps: 'rock', value: 2, role: 'support', effect: { buffAmount: 2 }, effectText: 'Adjacent allies +2/0' }],
-  ['persistent-buffer-4', { id: 'persistent-buffer-4', name: 'Persistent Buffer', rps: 'scissors', value: 4, role: 'support', effect: { persistBuffTurns: 1 }, effectText: 'Adjacent +1/0 persists' }],
+  ['brawler', { id: 'brawler', name: 'Brawler', rps: 'rock', value: 5, role: 'attack' }],
+  ['slasher', { id: 'slasher', name: 'Slasher', rps: 'scissors', value: 7, role: 'attack' }],
+  ['crusher', { id: 'crusher', name: 'Crusher', rps: 'paper', value: 9, role: 'attack' }],
+  ['lunger', { id: 'lunger', name: 'Lunger', rps: 'rock', value: 3, role: 'attack' }],
+  ['bulwark', { id: 'bulwark', name: 'Bulwark', rps: 'paper', value: 6, role: 'defense' }],
+  ['ironclad', { id: 'ironclad', name: 'Ironclad', rps: 'rock', value: 8, role: 'defense' }],
+  ['buckler', { id: 'buckler', name: 'Buckler', rps: 'scissors', value: 4, role: 'defense' }],
+  ['mentor', { id: 'mentor', name: 'Mentor', rps: 'scissors', value: 3, role: 'support' }],
+  ['tactician', { id: 'tactician', name: 'Tactician', rps: 'paper', value: 5, role: 'support' }],
+  ['vanguard', { id: 'vanguard', name: 'Vanguard', rps: 'rock', value: 7, role: 'support' }],
+  ['scout', { id: 'scout', name: 'Scout', rps: 'scissors', value: 4, role: 'support' }],
+  ['warden', { id: 'warden', name: 'Warden', rps: 'paper', value: 6, role: 'support' }],
 ])
 
 let currentStepIndex = 0
@@ -103,10 +105,13 @@ function resetGameState() {
   gameState.round = 1
   gameState.playerDeck = []
   gameState.playerHand = []
+  gameState.playerCemetery = []
   gameState.playerBoard = Array(GAME.SLOT_COUNT).fill(null)
   gameState.enemyDeck = []
+  gameState.enemyCemetery = []
   gameState.enemyBoard = Array(GAME.SLOT_COUNT).fill(null)
   gameState.placementOrder = []
+  gameState.rewardChoices = []
 }
 
 function prepareBoardChrome() {
@@ -335,7 +340,7 @@ function renderEnemyBoard(cards, options = {}) {
 
   const orderMap = new Map()
   if (options.showOrder) {
-    getResolutionOrder(cards).forEach((slotIndex, orderIndex) => {
+    getResolutionOrder().forEach((slotIndex, orderIndex) => {
       orderMap.set(slotIndex, orderIndex + 1)
     })
   }
@@ -362,6 +367,7 @@ function renderScene({ draggable = false, enemyOrder = false, playerNotes = null
   renderHand(gameState.playerHand, draggable)
   syncRoundCounter()
   syncResolveButton()
+  syncCollectionCounts()
 }
 
 function syncResolveButton() {
@@ -369,6 +375,24 @@ function syncResolveButton() {
   if (!btn) return
   btn.disabled = !canResolve()
   btn.textContent = 'Resolve'
+}
+
+function formatCardCount(count) {
+  return `${count} ${count === 1 ? 'card' : 'cards'}`
+}
+
+function syncCollectionCount(id, count) {
+  const label = document.getElementById(id)
+  if (!label) return
+  label.textContent = formatCardCount(count)
+  label.closest('.deck-button')?.classList.toggle('deck-button--empty', count === 0)
+}
+
+function syncCollectionCounts() {
+  syncCollectionCount('player-deck-count', gameState.playerDeck.length)
+  syncCollectionCount('player-cemetery-count', gameState.playerCemetery.length)
+  syncCollectionCount('enemy-deck-count', gameState.enemyDeck.length)
+  syncCollectionCount('enemy-cemetery-count', gameState.enemyCemetery.length)
 }
 
 function clearHighlights() {
@@ -482,11 +506,11 @@ function renderResolvedCombatScene() {
   const enemyNotes = {}
   gameState.playerBoard.forEach((card, index) => {
     if (!card) return
-    playerNotes[index] = card.value <= 0 ? 'Destroyed in combat' : `Survives at ${card.value} HP`
+    playerNotes[index] = card.value <= 0 ? 'Destroyed -> Cemetery' : `Value ${card.value} remains`
   })
   gameState.enemyBoard.forEach((card, index) => {
     if (!card) return
-    enemyNotes[index] = card.value <= 0 ? 'Destroyed in combat' : `Survives at ${card.value} HP`
+    enemyNotes[index] = card.value <= 0 ? 'Destroyed -> Cemetery' : `Value ${card.value} remains`
   })
   renderScene({ playerNotes, enemyNotes })
 }
@@ -574,6 +598,10 @@ function exposeTestState() {
     stepIndex: currentStepIndex,
     round: gameState.round,
     phase: gameState.phase,
+    playerDeckCount: gameState.playerDeck.length,
+    playerCemeteryCount: gameState.playerCemetery.length,
+    enemyDeckCount: gameState.enemyDeck.length,
+    enemyCemeteryCount: gameState.enemyCemetery.length,
     playerHand: gameState.playerHand.map((card) => ({
       id: card.id,
       value: card.value,
@@ -601,17 +629,25 @@ function anatomyScene() {
   welcomeScene()
 }
 
+function valueRangeScene() {
+  resetGameState()
+  gameState.playerHand = [cloneCard('crusher'), cloneCard('lunger')]
+  gameState.enemyBoard = [cloneCard('buckler'), null, null]
+  renderScene()
+}
+
 function rpsScene() {
   resetGameState()
-  gameState.playerHand = [cloneCard('aggressor-6')]
-  gameState.enemyBoard = [cloneCard('aggressor-4'), null, null]
+  gameState.playerHand = [cloneCard('brawler')]
+  gameState.enemyBoard = [cloneCard('slasher'), cloneCard('warden'), null]
   renderScene()
 }
 
 function firstDragScene() {
   resetGameState()
   gameState.phase = 'placement'
-  gameState.playerHand = [cloneCard('aggressor-6')]
+  gameState.playerHand = [cloneCard('brawler')]
+  gameState.enemyBoard = [cloneCard('slasher'), null, null]
   renderScene({ draggable: true })
 }
 
@@ -635,87 +671,152 @@ function placementScene() {
 }
 
 function combatResultScene() {
+  resetGameState()
+  gameState.playerBoard = [
+    cloneCard('brawler', { value: 2 }),
+    cloneCard('buckler', { value: 0 }),
+    null,
+  ]
+  gameState.enemyBoard = [
+    cloneCard('slasher', { value: 0 }),
+    cloneCard('ironclad', { value: 5 }),
+    null,
+  ]
   renderResolvedCombatScene()
+}
+
+function combatOrderScene() {
+  resetGameState()
+  const first = cloneCard('crusher')
+  const second = cloneCard('bulwark')
+  const third = cloneCard('scout')
+  gameState.playerBoard = [third, first, second]
+  gameState.enemyBoard = [
+    cloneCard('ironclad'),
+    cloneCard('buckler'),
+    cloneCard('warden'),
+  ]
+  gameState.placementOrder = [first, second, third]
+  renderScene({ enemyOrder: true })
 }
 
 function attackRoleScene() {
   resetGameState()
-  gameState.playerHand = [cloneCard('aggressor-6')]
-  gameState.enemyBoard = [cloneCard('defender-6'), null, null]
-  renderScene()
+  gameState.playerBoard = [cloneCard('brawler'), null, null]
+  gameState.enemyBoard = [cloneCard('buckler'), null, null]
+  renderScene({
+    playerNotes: {
+      0: 'Attack role adds +1 after rolling',
+    },
+  })
 }
 
 function defenseRoleScene() {
   resetGameState()
-  gameState.playerHand = [cloneCard('aggressor-4')]
-  gameState.enemyBoard = [cloneCard('defender-6'), null, null]
+  gameState.playerBoard = [cloneCard('slasher'), null, null]
+  gameState.enemyBoard = [cloneCard('bulwark'), null, null]
+  renderScene({
+    enemyNotes: {
+      0: 'Defense role reduces damage by 1',
+    },
+  })
+}
+
+function supportRoleScene() {
+  resetGameState()
+  const left = cloneCard('brawler')
+  const center = cloneCard('mentor')
+  const right = cloneCard('buckler')
+  addBuff(left, 1, 'Support range', 'Mentor buffs the ally on the left')
+  addBuff(right, 1, 'Support range', 'Mentor buffs the ally on the right')
+  gameState.playerBoard = [left, center, right]
   renderScene()
 }
 
-function firstCardBonusScene() {
+function rpsAdvantageScene() {
   resetGameState()
+  gameState.playerBoard = [cloneCard('brawler'), null, null]
+  gameState.enemyBoard = [cloneCard('slasher'), null, null]
+  renderScene({
+    playerNotes: {
+      0: 'Advantage: roll 2x and keep the higher result',
+    },
+  })
+}
+
+function rpsDisadvantageScene() {
+  resetGameState()
+  gameState.playerBoard = [cloneCard('brawler'), null, null]
+  gameState.enemyBoard = [cloneCard('warden'), null, null]
+  renderScene({
+    playerNotes: {
+      0: 'Disadvantage: this side rolls once',
+    },
+  })
+}
+
+function rpsNeutralScene() {
+  resetGameState()
+  gameState.playerBoard = [cloneCard('scout'), null, null]
+  gameState.enemyBoard = [cloneCard('buckler'), null, null]
+  renderScene({
+    playerNotes: {
+      0: 'Tie: the lower roll damages both cards',
+    },
+    enemyNotes: {
+      0: 'Tie: shared damage hits both sides',
+    },
+  })
+}
+
+function cemeteryScene() {
+  resetGameState()
+  gameState.round = 2
   gameState.phase = 'placement'
-  gameState.playerHand = [cloneCard('aggressor-6')]
-  gameState.enemyBoard = [cloneCard('aggressor-4'), null, null]
-  renderScene({ draggable: true })
-}
-
-function supportPlacementScene() {
-  resetGameState()
-  gameState.phase = 'placement'
-  gameState.playerHand = [
-    cloneCard('aggressor-6'),
-    cloneCard('buffer-3'),
-    cloneCard('defender-6'),
-  ]
-  placeCard('aggressor-6', 0)
-  placeCard('buffer-3', 1)
-  placeCard('defender-6', 2)
+  gameState.playerDeck = [cloneCard('vanguard'), cloneCard('warden')]
+  gameState.playerHand = [cloneCard('slasher')]
+  gameState.playerCemetery = [cloneCard('lunger')]
+  gameState.enemyDeck = [cloneCard('crusher')]
+  gameState.enemyCemetery = [cloneCard('buckler'), cloneCard('mentor')]
+  gameState.enemyBoard = [cloneCard('ironclad'), null, null]
   renderScene()
 }
 
-function supportSurviveScene() {
+function biggerValuesScene() {
   resetGameState()
-  const left = cloneCard('aggressor-6')
-  const buffer = cloneCard('buffer-3', { value: 2 })
-  const right = cloneCard('defender-6', { value: 4 })
-  addBuff(left, 1, 'Buffer support', 'Adjacent Buffer on the right')
-  addBuff(left, 1, 'Buffer survived', 'Adjacent Buffer survived combat')
-  addBuff(right, 1, 'Buffer support', 'Adjacent Buffer on the left')
-  addBuff(right, 1, 'Buffer survived', 'Adjacent Buffer survived combat')
-  gameState.playerBoard = [left, buffer, right]
+  gameState.playerHand = [cloneCard('crusher'), cloneCard('lunger')]
   renderScene()
 }
 
-function resolutionOrderScene() {
+function supportNeighborsScene() {
   resetGameState()
-  gameState.enemyBoard = [
-    cloneCard('aggressor-4'),
-    cloneCard('defender-6'),
-    cloneCard('glass-cannon-5'),
-  ]
-  renderScene({ enemyOrder: true })
-}
-
-function buffCapScene() {
-  resetGameState()
-  const card = cloneCard('aggressor-6')
-  addBuff(card, 1, 'Support bonus', 'First nearby source')
-  addBuff(card, 2, 'Survival bonus', 'Second nearby source')
-  gameState.playerHand = [card]
+  const left = cloneCard('brawler')
+  const center = cloneCard('mentor')
+  const right = cloneCard('buckler')
+  addBuff(left, 1, 'Adjacent support', 'Mentor increases the left ally range')
+  addBuff(right, 1, 'Adjacent support', 'Mentor increases the right ally range')
+  gameState.playerBoard = [left, center, right]
   renderScene()
 }
 
-function singleCardScene(cardId) {
-  resetGameState()
-  gameState.playerHand = [cloneCard(cardId)]
-  renderScene()
+function tooltipScene() {
+  combatOrderScene()
+}
+
+function summaryScene() {
+  welcomeScene()
 }
 
 function roundLoopScene() {
   resetGameState()
-  initRun()
-  drawCards()
+  gameState.round = 3
+  gameState.phase = 'placement'
+  gameState.playerDeck = [cloneCard('warden'), cloneCard('vanguard'), cloneCard('bulwark')]
+  gameState.playerHand = [cloneCard('brawler'), cloneCard('scout')]
+  gameState.playerCemetery = [cloneCard('lunger')]
+  gameState.enemyDeck = [cloneCard('crusher'), cloneCard('mentor')]
+  gameState.enemyCemetery = [cloneCard('slasher')]
+  gameState.enemyBoard = [cloneCard('ironclad'), cloneCard('buckler'), null]
   renderScene()
 }
 
@@ -723,16 +824,20 @@ function endConditionScene() {
   resetGameState()
   gameState.round = 4
   gameState.phase = 'placement'
-  gameState.playerDeck = [cloneCard('shield-4')]
-  gameState.playerHand = [cloneCard('opportunist-3')]
-  gameState.enemyDeck = [cloneCard('glass-cannon-5')]
-  gameState.enemyBoard = [cloneCard('defender-6'), null, null]
+  gameState.playerDeck = []
+  gameState.playerHand = [cloneCard('scout')]
+  gameState.playerCemetery = [cloneCard('lunger'), cloneCard('mentor')]
+  gameState.enemyDeck = [cloneCard('warden')]
+  gameState.enemyCemetery = [cloneCard('buckler'), cloneCard('slasher')]
+  gameState.enemyBoard = [cloneCard('ironclad'), null, null]
   renderScene()
 }
 
 function readyScene() {
   resetGameState()
   readyToLaunch = true
+  initRun()
+  drawCards()
   renderScene()
   const nextBtn = document.getElementById('tutorial-next-btn')
   if (nextBtn) nextBtn.textContent = 'Start Playing ->'
@@ -742,7 +847,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'welcome',
     chapter: 1,
-    tooltip: 'Welcome to the tutorial.\n\nThis is the game board. Your side is at the bottom, and the enemy is at the top. Each round you place cards and resolve combat.',
+    tooltip: 'Welcome to the field manual.\n\nYour row is at the bottom. The enemy row is at the top. The right panel tracks each deck and Cemetery.',
     highlight: '#board',
     lock: 'all',
     advance: 'click',
@@ -751,16 +856,25 @@ const TUTORIAL_STEPS = [
   {
     id: 'card-anatomy',
     chapter: 1,
-    tooltip: 'This is a card.\n\nName is at the top. The center shows the RPS symbol and value. The bottom shows role and HP. Special effects appear as extra text.',
+    tooltip: 'This is a card.\n\nTop: name and role.\nCenter: RPS symbol.\nBadge: current value.\nBottom: role reminder text.',
     highlight: '#cards .card',
     lock: 'all',
     advance: 'click',
     setup: anatomyScene,
   },
   {
+    id: 'value-range',
+    chapter: 1,
+    tooltip: 'Value does two jobs at once.\n\nIt is the card HP, and it is the roll ceiling.\nA value 9 card rolls from 1 to 9. A value 3 card rolls from 1 to 3.',
+    highlight: '#cards .card',
+    lock: 'all',
+    advance: 'click',
+    setup: valueRangeScene,
+  },
+  {
     id: 'rps-intro',
     chapter: 1,
-    tooltip: 'Rock ✊ beats Scissors ✌️.\nScissors ✌️ beats Paper ✋.\nPaper ✋ beats Rock ✊.\n\nWinning the RPS matchup gives +3 damage. Losing costs -3.',
+    tooltip: 'Rock ✊ beats Scissors ✌️.\nScissors ✌️ beats Paper ✋.\nPaper ✋ beats Rock ✊.\n\nRPS does not add flat damage now. It changes how you roll.',
     highlight: '#enemy-cards .card, #cards .card',
     lock: 'all',
     advance: 'click',
@@ -778,8 +892,8 @@ const TUTORIAL_STEPS = [
   {
     id: 'phases',
     chapter: 2,
-    tooltip: 'Each round has three phases:\n\n1. Draw\n2. Place\n3. Resolve\n\nThen the cycle repeats.',
-    highlight: '#hud',
+    tooltip: 'Each round follows the same loop:\n\n1. Draw\n2. Place\n3. Resolve\n\nThen the next round begins.',
+    highlight: '#hud, #rules-panel',
     lock: 'all',
     advance: 'click',
     setup: phasesScene,
@@ -787,8 +901,8 @@ const TUTORIAL_STEPS = [
   {
     id: 'draw-phase',
     chapter: 2,
-    tooltip: 'At the start of each round you draw until your hand has 3 cards. Surviving cards return to your hand and count toward that total.',
-    highlight: '#cards',
+    tooltip: 'You draw until the open slots in your row can be filled.\n\nSurviving cards come back to your hand before the next draw, so they reduce how many fresh cards you need.',
+    highlight: '#deck-panel, #cards',
     lock: 'all',
     advance: 'click',
     setup: drawPhaseScene,
@@ -796,7 +910,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'placement',
     chapter: 2,
-    tooltip: 'Place all three cards on the board. Drag each card to a slot.',
+    tooltip: 'Place all three cards on the board.\n\nThe order you place them matters, so do not think only in columns.',
     highlight: '#cards, #slots',
     lock: ['#enemy-board', '#btn-resolve'],
     advance: 'allPlaced',
@@ -812,19 +926,19 @@ const TUTORIAL_STEPS = [
     setup: null,
   },
   {
-    id: 'combat-result',
+    id: 'combat-order',
     chapter: 2,
-    tooltip: 'Each slot fights its opposite slot simultaneously.\n\nDamage comes from attack value plus modifiers, minus the defender reduction. Cards at 0 HP are destroyed.',
-    highlight: '#player-board, #enemy-board',
+    tooltip: 'Combat resolves in your placement order.\n\nThe 1st, 2nd, and 3rd markers show which enemy columns fight first, second, and third.',
+    highlight: '#enemy-cards',
     lock: 'all',
     advance: 'click',
-    setup: combatResultScene,
+    setup: combatOrderScene,
   },
   {
     id: 'attack-role',
     chapter: 3,
-    tooltip: 'Attack role cards deal +2 bonus damage on top of their value.\n\nAggressor shows that role clearly: its attack is stronger before any other modifiers.',
-    highlight: '#cards .card[data-id="aggressor-6"]',
+    tooltip: 'Attack cards add +1 to the rolled value.\n\nThey do not get free HP. They only push their damage slightly higher.',
+    highlight: '#cards .card[data-id="brawler"]',
     lock: 'all',
     advance: 'click',
     setup: attackRoleScene,
@@ -832,127 +946,88 @@ const TUTORIAL_STEPS = [
   {
     id: 'defense-role',
     chapter: 3,
-    tooltip: 'Defense role cards block half their current HP from incoming damage.\n\nDefender is the baseline example: at 6 HP it blocks 3 damage, but that block shrinks as it gets hurt.',
-    highlight: '#enemy-cards .card[data-id="defender-6"]',
+    tooltip: 'Defense cards reduce incoming damage by 1.\n\nThat happens after the opposing roll is set, so it trims the final hit.',
+    highlight: '#enemy-cards .card[data-id="bulwark"]',
     lock: 'all',
     advance: 'click',
     setup: defenseRoleScene,
   },
   {
-    id: 'first-card-bonus',
+    id: 'support-role',
     chapter: 3,
-    tooltip: 'The first card you place gets a bonus based on its RPS matchup in that slot.\n\nWin -> +3\nTie -> +1\nLoss -> +0\n\nPlace the rock card against scissors.',
-    highlight: '#cards .card, #enemy-cards .card',
-    lock: ['#btn-resolve'],
-    advance: 'cardPlaced',
-    setup: firstCardBonusScene,
-  },
-  {
-    id: 'support-placement',
-    chapter: 3,
-    tooltip: 'Support cards buff adjacent allies when placed.\n\nBuffer sits between two allies, so both neighbours gain +1.',
-    highlight: '#cards .card[data-id="buffer-3"]',
+    tooltip: 'Support cards add +1 range to adjacent allies.\n\nThey do not hit harder themselves. They widen the rolls of neighbors on both sides.',
+    highlight: '#cards .card[data-id="mentor"], #cards .card[data-id="brawler"], #cards .card[data-id="buckler"]',
     lock: 'all',
     advance: 'click',
-    setup: supportPlacementScene,
+    setup: supportRoleScene,
   },
   {
-    id: 'support-survive',
+    id: 'rps-advantage',
     chapter: 3,
-    tooltip: 'If a support card survives combat, surviving neighbours gain another +1.\n\nThat extra buff carries into the next round.',
-    highlight: '#cards .card[data-id="buffer-3"]',
+    tooltip: 'If your card wins the RPS matchup, it rolls twice and keeps the higher result.\n\nThat is the new advantage rule.',
+    highlight: '#cards .card[data-id="brawler"], #enemy-cards .card[data-id="slasher"]',
     lock: 'all',
     advance: 'click',
-    setup: supportSurviveScene,
+    setup: rpsAdvantageScene,
   },
   {
-    id: 'resolution-order',
+    id: 'rps-disadvantage',
     chapter: 3,
-    tooltip: 'Combat resolves strongest enemy first.\n\nThe numbers on enemy cards show the order for this board state.',
-    highlight: '#enemy-cards',
+    tooltip: 'If your card loses the RPS matchup, it rolls once while the winner gets the stronger roll mode.\n\nBad matchups still matter even on high-value cards.',
+    highlight: '#cards .card[data-id="brawler"], #enemy-cards .card[data-id="warden"]',
     lock: 'all',
     advance: 'click',
-    setup: resolutionOrderScene,
+    setup: rpsDisadvantageScene,
   },
   {
-    id: 'buff-cap',
+    id: 'rps-neutral',
+    chapter: 3,
+    tooltip: 'On an RPS tie, both sides roll once.\n\nThe lower of those two rolls becomes shared damage dealt to both cards.',
+    highlight: '#cards .card[data-id="scout"], #enemy-cards .card[data-id="buckler"]',
+    lock: 'all',
+    advance: 'click',
+    setup: rpsNeutralScene,
+  },
+  {
+    id: 'combat-result',
     chapter: 4,
-    tooltip: 'Buffs can stack from multiple sources, but a card can never go above +3 total buffs.',
+    tooltip: 'After both attacks land, each card loses value.\n\nCards at 0 are destroyed. Cards above 0 stay in the run with their remaining value.',
+    highlight: '#player-board, #enemy-board',
+    lock: 'all',
+    advance: 'click',
+    setup: combatResultScene,
+  },
+  {
+    id: 'cemetery',
+    chapter: 4,
+    tooltip: 'Destroyed cards leave the board and move to the Cemetery.\n\nCards in the Cemetery are gone for the rest of the run.',
+    highlight: '#player-cemetery-button, #enemy-cemetery-button',
+    lock: 'all',
+    advance: 'click',
+    setup: cemeteryScene,
+  },
+  {
+    id: 'bigger-values',
+    chapter: 4,
+    tooltip: 'Higher value means a wider roll range and more life.\n\nIt does not remove randomness. A small card can still spike high.',
     highlight: '#cards .card',
     lock: 'all',
     advance: 'click',
-    setup: buffCapScene,
+    setup: biggerValuesScene,
   },
   {
-    id: 'effect-glass-cannon',
+    id: 'support-neighbors',
     chapter: 4,
-    tooltip: 'Glass Cannon takes +1 extra damage when hit.\n\nIt hits hard for its size, but it is easier to remove.',
-    highlight: '#cards .card[data-id="glass-cannon-5"]',
+    tooltip: 'Support only affects immediate neighbors.\n\nIf there is a gap, the effect does not jump across the empty slot.',
+    highlight: '#cards .card[data-id="mentor"], #cards .card[data-id="brawler"], #cards .card[data-id="buckler"]',
     lock: 'all',
     advance: 'click',
-    setup() {
-      singleCardScene('glass-cannon-5')
-    },
-  },
-  {
-    id: 'effect-opportunist',
-    chapter: 4,
-    tooltip: 'Opportunist deals +2 bonus damage when it wins the RPS matchup.\n\nIt rewards precise positioning.',
-    highlight: '#cards .card[data-id="opportunist-3"]',
-    lock: 'all',
-    advance: 'click',
-    setup() {
-      singleCardScene('opportunist-3')
-    },
-  },
-  {
-    id: 'effect-shield',
-    chapter: 4,
-    tooltip: 'Shield blocks +1 extra damage on top of normal defense reduction.\n\nIt is a very reliable front-line card.',
-    highlight: '#cards .card[data-id="shield-4"]',
-    lock: 'all',
-    advance: 'click',
-    setup() {
-      singleCardScene('shield-4')
-    },
-  },
-  {
-    id: 'effect-reactive-guard',
-    chapter: 4,
-    tooltip: 'Reactive Guard blocks +2 extra damage when it loses the RPS matchup.\n\nA bad matchup makes it tougher, not weaker.',
-    highlight: '#cards .card[data-id="reactive-guard-3"]',
-    lock: 'all',
-    advance: 'click',
-    setup() {
-      singleCardScene('reactive-guard-3')
-    },
-  },
-  {
-    id: 'effect-fragile-buffer',
-    chapter: 4,
-    tooltip: 'Fragile Buffer gives +2 to adjacent allies instead of the normal +1.\n\nThe buff is larger, but the card itself is easy to kill.',
-    highlight: '#cards .card[data-id="fragile-buffer-2"]',
-    lock: 'all',
-    advance: 'click',
-    setup() {
-      singleCardScene('fragile-buffer-2')
-    },
-  },
-  {
-    id: 'effect-persistent-buffer',
-    chapter: 4,
-    tooltip: 'Persistent Buffer is the long-game support card.\n\nIts effect is designed to keep value flowing across rounds.',
-    highlight: '#cards .card[data-id="persistent-buffer-4"]',
-    lock: 'all',
-    advance: 'click',
-    setup() {
-      singleCardScene('persistent-buffer-4')
-    },
+    setup: supportNeighborsScene,
   },
   {
     id: 'round-loop',
     chapter: 4,
-    tooltip: 'After combat, surviving player cards return to your hand, the enemy refills their board, and you draw back up to 3 cards.\n\nThat is the round loop.',
+    tooltip: 'After combat, surviving player cards return to your hand.\n\nThe enemy refills open board slots, then the next draw starts the next round.',
     highlight: '#board',
     lock: 'all',
     advance: 'click',
@@ -961,11 +1036,29 @@ const TUTORIAL_STEPS = [
   {
     id: 'end-condition',
     chapter: 4,
-    tooltip: 'You lose when both your hand and deck are empty.\n\nYou win when the enemy has no board cards and no deck left.\n\nEvery remaining card matters.',
-    highlight: '#board',
+    tooltip: 'You lose when your hand and deck are both empty.\n\nYou win when the enemy has no deck left and no cards left on the board.',
+    highlight: '#deck-panel',
     lock: 'all',
     advance: 'click',
     setup: endConditionScene,
+  },
+  {
+    id: 'tooltip-read',
+    chapter: 4,
+    tooltip: 'Hover cards to inspect roll ranges and matchup hints.\n\nThat read is how you decide whether a risky placement is worth it.',
+    highlight: '#cards .card',
+    lock: 'all',
+    advance: 'click',
+    setup: tooltipScene,
+  },
+  {
+    id: 'summary',
+    chapter: 4,
+    tooltip: 'Remember the whole system:\n\nValue = HP and roll ceiling.\nRPS changes roll mode.\nRoles bend the math.\nPlacement order decides fight order.',
+    highlight: '#rules-panel',
+    lock: 'all',
+    advance: 'click',
+    setup: summaryScene,
   },
   {
     id: 'ready',
