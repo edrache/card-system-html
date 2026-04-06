@@ -1,13 +1,11 @@
 import { CARD } from '../config/card.config.js'
 import { LAYOUT } from '../config/layout.config.js'
-import { GAME } from '../config/game.config.js'
 import { ANIM } from '../config/anim.config.js'
 import { initDrag } from './interactions.js'
 import { createCardEl, updateCardPresentation } from './card-renderer.js'
 import {
   claimReward,
   gameState,
-  getGhostPlayerBoardCards,
   getResolutionOrder,
   initRun,
   drawCards,
@@ -16,9 +14,8 @@ import {
   prepareResolveRound,
   resolveCombatStep,
   finalizeResolveRound,
-  syncDerivedState,
 } from './game.js'
-import { getDamageBreakdown, getRpsResult } from './combat.js'
+import { getCombatPreview, getRpsResult } from './combat.js'
 import {
   hideOverlay,
   syncResolveButton,
@@ -29,12 +26,16 @@ import {
   setResolveButtonLabel,
 } from './ui.js'
 
-const COLUMN_SPREAD = 55   // px — max Y offset for column reordering
-const COLUMN_FIGHT_EMOJI = '⚔️'
 const RPS_ICON = {
   rock: '✊',
   paper: '✋',
   scissors: '✌️',
+}
+
+const ROLE_TEXT = {
+  attack: 'Attack adds +1 to the rolled value.',
+  defense: 'Defense reduces incoming damage by 1.',
+  support: 'Support widens adjacent allies by +1.',
 }
 
 // ── DOM refs tracked by slot index ───────────────────────────────────────────
@@ -56,47 +57,53 @@ const SLOT_MATCHUP_CLASSES = ['slot--advantage', 'slot--neutral', 'slot--disadva
 
 // ── Element factories ─────────────────────────────────────────────────────────
 
-function getCombatProjection(playerCard, slotIndex) {
+function getRpsProjection(owner, slotIndex) {
+  const playerCard = gameState.playerBoard[slotIndex]
   const enemyCard = gameState.enemyBoard[slotIndex]
-  if (!enemyCard) return null
+  if (!playerCard || !enemyCard) return null
 
-  const playerBreakdown = getDamageBreakdown(playerCard, enemyCard)
-  const enemyBreakdown = getDamageBreakdown(enemyCard, playerCard)
-  const playerHpDelta = -enemyBreakdown.finalDamage
-  const enemyHpDelta = -playerBreakdown.finalDamage
-  const playerAfterHp = Math.max(0, playerCard.hp - enemyBreakdown.finalDamage)
-  const enemyAfterHp = Math.max(0, enemyCard.hp - playerBreakdown.finalDamage)
+  if (owner === 'enemy') {
+    const preview = getCombatPreview(
+      enemyCard,
+      playerCard,
+      gameState.enemyBoard,
+      gameState.playerBoard,
+      slotIndex,
+      slotIndex
+    )
 
-  let outcome = 'clash'
-  let label = 'CLASH'
-  if (enemyAfterHp <= 0 && playerAfterHp > 0) {
-    outcome = 'win'
-    label = 'WIN'
-  } else if (playerAfterHp <= 0 && enemyAfterHp > 0) {
-    outcome = 'lose'
-    label = 'LOSE'
-  } else if (playerAfterHp <= 0 && enemyAfterHp <= 0) {
-    outcome = 'trade'
-    label = 'TRADE'
+    return {
+      label: preview.label,
+      rps: preview.rps,
+      self: preview.player,
+      opponent: preview.enemy,
+      supportBonus: preview.player.supportBonus,
+      effectiveRange: preview.player.range,
+    }
   }
 
-  return {
+  const preview = getCombatPreview(
+    playerCard,
     enemyCard,
-    playerBreakdown,
-    enemyBreakdown,
-    playerHpDelta,
-    enemyHpDelta,
-    playerAfterHp,
-    enemyAfterHp,
-    outcome,
-    label,
-    rps: playerBreakdown.rps,
+    gameState.playerBoard,
+    gameState.enemyBoard,
+    slotIndex,
+    slotIndex
+  )
+
+  return {
+    label: preview.label,
+    rps: preview.rps,
+    self: preview.player,
+    opponent: preview.enemy,
+    supportBonus: preview.player.supportBonus,
+    effectiveRange: preview.player.range,
   }
 }
 
 function getSlotMatchupClass(card, slotIndex) {
   const enemyCard = gameState.enemyBoard[slotIndex]
-  if (!card || !enemyCard || card.ghostBuffer || enemyCard.ghostBuffer) return ''
+  if (!card || !enemyCard) return ''
 
   const rps = getRpsResult(card, enemyCard)
   if (rps === 'advantage') return 'slot--advantage'
@@ -115,9 +122,7 @@ function setSlotMatchupClass(slotEl, matchupClass = '') {
 function createColumnMarkerEl(x, y) {
   const el = document.createElement('div')
   el.className = 'column-fight-marker'
-  el.innerHTML =
-    `<span class="column-fight-marker__emoji">${COLUMN_FIGHT_EMOJI}</span>` +
-    '<span class="column-fight-marker__order"></span>'
+  el.innerHTML = '<span class="column-fight-marker__emoji">⚔️</span><span class="column-marker--order"></span>'
   el.style.left = `${x}px`
   el.style.top = `${y}px`
   return el
@@ -130,16 +135,23 @@ function formatOrdinal(position) {
   return `${position}th`
 }
 
-function refreshColumnMarkers() {
-  const resolutionOrder = getResolutionOrder()
-  const orderBySlot = new Map(
-    resolutionOrder.map((slotIndex, idx) => [slotIndex, formatOrdinal(idx + 1)])
-  )
-
-  columnMarkerEls.forEach((markerEl, slotIndex) => {
+function showPlacementOrderMarkers(resolutionOrder) {
+  columnMarkerEls.forEach((markerEl) => {
     if (!markerEl) return
-    const orderLabel = orderBySlot.get(slotIndex) ?? ''
-    markerEl.querySelector('.column-fight-marker__order').textContent = orderLabel
+    markerEl.querySelector('.column-marker--order').textContent = ''
+  })
+
+  resolutionOrder.forEach((slotIndex, index) => {
+    const markerEl = columnMarkerEls[slotIndex]
+    if (!markerEl) return
+    markerEl.querySelector('.column-marker--order').textContent = formatOrdinal(index + 1)
+  })
+}
+
+function clearPlacementOrderMarkers() {
+  columnMarkerEls.forEach((markerEl) => {
+    if (!markerEl) return
+    markerEl.querySelector('.column-marker--order').textContent = ''
   })
 }
 
@@ -194,13 +206,21 @@ function refreshVisibleCards() {
     const slotIndex = cardEl.dataset.slotId ? slotIdToIndex(cardEl.dataset.slotId) : -1
     const combatProjection =
       slotIndex >= 0 && shouldShowCombatProjection(slotIndex)
-        ? getCombatProjection(card, slotIndex)
+        ? getRpsProjection(owner, slotIndex)
         : null
-    updateCardPresentation(cardEl, card, combatProjection)
+    updateCardPresentation(cardEl, card, {
+      combatProjection,
+      supportBonus: combatProjection?.supportBonus ?? 0,
+      effectiveRange: combatProjection?.effectiveRange ?? card.value,
+    })
   })
 
   refreshSlotMatchups()
-  refreshColumnMarkers()
+  if (gameState.phase === 'placement' || gameState.phase === 'combat') {
+    showPlacementOrderMarkers(getResolutionOrder())
+  } else {
+    clearPlacementOrderMarkers()
+  }
 }
 
 export function createSlotEl(slot, extraClass) {
@@ -235,73 +255,9 @@ function slotIdToIndex(slotId) {
   return match ? parseInt(match[1], 10) : -1
 }
 
-// ── Column Y reordering ───────────────────────────────────────────────────────
-
-/**
- * Sorts columns vertically by enemy card strength (value + buffs).
- * Strongest enemy → top (most negative Y offset).
- * Empty slots → bottom.
- * Animates slots and their occupying cards.
- */
-function reorderColumns() {
-  const count = GAME.SLOT_COUNT
-
-  // Strength per column (-Infinity for empty slots)
-  const strengths = gameState.enemyBoard.map(card =>
-    card ? card.value + card.buffs : -Infinity
-  )
-
-  // Unique non-empty strengths sorted descending
-  const uniqueDesc = [...new Set(strengths.filter(s => s !== -Infinity))]
-    .sort((a, b) => b - a)
-
-  // Dense rank: 0 = strongest; empty slots ranked last
-  const ranks = strengths.map(s =>
-    s === -Infinity ? uniqueDesc.length : uniqueDesc.indexOf(s)
-  )
-
-  const maxRank = Math.max(...ranks, 0)
-
-  // Y offsets: centered so rank 0 is at -COLUMN_SPREAD, rank maxRank at +COLUMN_SPREAD
-  const offsets = ranks.map(rank =>
-    maxRank === 0 ? 0 : (rank / maxRank) * COLUMN_SPREAD * 2 - COLUMN_SPREAD
-  )
-
-  const dur  = 0.65
-  const ease = 'power2.inOut'
-
-  for (let i = 0; i < count; i++) {
-    const newY = offsets[i]
-
-    // Enemy slot + card
-    if (enemySlotEls[i])  gsap.to(enemySlotEls[i],  { y: newY, duration: dur, ease })
-    if (enemyCardEls[i])  gsap.to(enemyCardEls[i],   { y: newY, duration: dur, ease })
-
-    // Player slot: move by the delta so any snapped card follows
-    if (playerSlotEls[i]) {
-      const prevY = gsap.getProperty(playerSlotEls[i], 'y') ?? 0
-      const delta = newY - prevY
-      gsap.to(playerSlotEls[i], { y: newY, duration: dur, ease })
-
-      const snappedCard = document.querySelector(
-        `.card[data-slot-id="${playerSlotEls[i].dataset.id}"]`
-      )
-      if (snappedCard) {
-        const cardY = gsap.getProperty(snappedCard, 'y') ?? 0
-        gsap.to(snappedCard, { y: cardY + delta, duration: dur, ease })
-      }
-    }
-
-    if (columnMarkerEls[i]) {
-      gsap.to(columnMarkerEls[i], { y: newY, duration: dur, ease })
-    }
-  }
-}
-
 // ── Hand rendering ────────────────────────────────────────────────────────────
 
 function renderHand() {
-  syncDerivedState()
   const container = document.getElementById('cards')
   container.innerHTML = ''
 
@@ -335,29 +291,11 @@ function renderHand() {
 
     container.appendChild(el)
   })
-
-  renderGhostPlayerBoard(container)
-}
-
-function renderGhostPlayerBoard(container) {
-  const count = LAYOUT.slots.length
-  const playerRowY = Math.round(window.innerHeight * LAYOUT.playerSlotRowY)
-  const positions = calcSlotRow(count, playerRowY)
-
-  getGhostPlayerBoardCards().forEach(({ card, slotIndex }) => {
-    const el = createCardEl(card)
-    el.classList.add('card--ghost')
-    el.style.left = `${positions[slotIndex].x}px`
-    el.style.top = `${positions[slotIndex].y}px`
-    el.style.cursor = 'default'
-    container.appendChild(el)
-  })
 }
 
 // ── Enemy board rendering ─────────────────────────────────────────────────────
 
 function renderEnemyBoard() {
-  syncDerivedState()
   const container = document.getElementById('enemy-cards')
   container.innerHTML = ''
   enemyCardEls.fill(null)
@@ -372,9 +310,7 @@ function renderEnemyBoard() {
       return
     }
     const el = createCardEl(card, true /* isEnemy */)
-    if (card.ghostBuffer) {
-      el.classList.add('card--ghost')
-    }
+    el.dataset.slotId = `enemy-slot-${i}`
     el.style.left   = positions[i].x + 'px'
     el.style.top    = positions[i].y + 'px'
     el.style.cursor = 'default'
@@ -431,11 +367,11 @@ function createDeckListItem(card, index) {
 
   const meta = document.createElement('div')
   meta.className = 'deck-list-item__meta'
-  meta.textContent = `${card.role} · ATK ${card.value} · HP ${card.hp}`
+  meta.textContent = `${card.role} · Value ${card.value}`
 
   const effect = document.createElement('div')
   effect.className = 'deck-list-item__effect'
-  effect.textContent = card.effectText ?? 'No special effect'
+  effect.textContent = ROLE_TEXT[card.role] ?? 'No special role effect'
 
   main.appendChild(titleRow)
   main.appendChild(meta)
@@ -569,6 +505,7 @@ function clearCombatHighlights() {
   document.querySelectorAll('.column-fight-marker--active').forEach((el) => el.classList.remove('column-fight-marker--active'))
   document.querySelectorAll('.card--resolving').forEach((el) => el.classList.remove('card--resolving'))
   document.querySelectorAll('.card__resolution-note').forEach((el) => el.remove())
+  document.querySelectorAll('.card__roll-frame').forEach((el) => el.remove())
 }
 
 function highlightCombatPair(slotIndex) {
@@ -587,18 +524,56 @@ function createResolutionNote(sideResult) {
   title.className = 'card__resolution-title'
   title.textContent = sideResult.died ? 'Destroyed' : 'Stays'
 
-  const hp = document.createElement('div')
-  hp.className = 'card__resolution-line'
-  hp.textContent = `HP ${sideResult.hpBefore} -> ${sideResult.hpAfter}`
+  const value = document.createElement('div')
+  value.className = 'card__resolution-line'
+  value.textContent = `Value ${sideResult.valueBefore} -> ${sideResult.valueAfter}`
 
   const dealt = document.createElement('div')
   dealt.className = 'card__resolution-line'
   dealt.textContent = `Deals ${sideResult.dealt}`
 
+  const rolls = document.createElement('div')
+  rolls.className = 'card__resolution-line'
+  rolls.textContent = `Rolls ${sideResult.rolls.join(', ')}`
+
   note.appendChild(title)
-  note.appendChild(hp)
+  note.appendChild(value)
   note.appendChild(dealt)
+  note.appendChild(rolls)
   return note
+}
+
+function getChosenRoll(rolls = []) {
+  if (!Array.isArray(rolls) || rolls.length === 0) return null
+  return Math.max(...rolls)
+}
+
+function createRollFrame(sideResult) {
+  const chosenRoll = getChosenRoll(sideResult.rolls)
+  if (chosenRoll === null) return null
+
+  const frame = document.createElement('div')
+  frame.className = 'card__roll-frame'
+
+  const label = document.createElement('div')
+  label.className = 'card__roll-label'
+  label.textContent = 'Roll'
+
+  const value = document.createElement('div')
+  value.className = 'card__roll-value'
+  value.textContent = String(chosenRoll)
+
+  frame.appendChild(label)
+  frame.appendChild(value)
+
+  if (sideResult.rolls.length > 1) {
+    const detail = document.createElement('div')
+    detail.className = 'card__roll-detail'
+    detail.textContent = sideResult.rolls.join(' / ')
+    frame.appendChild(detail)
+  }
+
+  return frame
 }
 
 function showResolutionState(cardEl, sideResult, card) {
@@ -606,8 +581,13 @@ function showResolutionState(cardEl, sideResult, card) {
 
   cardEl.classList.add('card--resolving')
   cardEl.classList.toggle('card--destroyed', sideResult.died)
-  updateCardPresentation(cardEl, card, null)
+  updateCardPresentation(cardEl, card)
   cardEl.querySelector('.card__resolution-note')?.remove()
+  cardEl.querySelector('.card__roll-frame')?.remove()
+  const rollFrame = createRollFrame(sideResult)
+  if (rollFrame) {
+    cardEl.appendChild(rollFrame)
+  }
   cardEl.appendChild(createResolutionNote(sideResult))
 
   const rotation = sideResult.died ? ANIM.resolveTiltAngle : 0
@@ -631,8 +611,8 @@ function showResolutionState(cardEl, sideResult, card) {
 
 function capturePlayerReturnStates() {
   return gameState.playerBoard
-    .map((card, slotIndex) => {
-      if (!card || card.hp <= 0) return null
+    .map((card) => {
+      if (!card || card.value <= 0) return null
       const cardEl = findPlayerCardEl(card.id)
       if (!cardEl) return null
 
@@ -772,7 +752,6 @@ function showRewardOverlay(rewardChoices) {
       renderHand()
       renderDeckButtons()
       refreshVisibleCards()
-      reorderColumns()
       syncResolveButton()
     })
 
@@ -797,7 +776,7 @@ async function finalizeCombatFlow() {
   const playerReturnStates = capturePlayerReturnStates()
   const enemyAliveIds = new Set(
     gameState.enemyBoard
-      .filter((card) => card && card.hp > 0)
+      .filter((card) => card && card.value > 0)
       .map((card) => card.id)
   )
 
@@ -814,10 +793,10 @@ async function finalizeCombatFlow() {
   renderDeckButtons()
   refreshVisibleCards()
   await animateRoundCleanup(playerReturnStates, drawnCards, enemyAliveIds)
-  reorderColumns()
   logRoundResult(result)
 
   clearCombatHighlights()
+  clearPlacementOrderMarkers()
   resetCombatFlowState()
   setHandLocked(false)
 
@@ -895,6 +874,7 @@ async function startCombatFlow() {
   combatFlowState.log = []
   combatFlowState.resolvedSlots.clear()
 
+  showPlacementOrderMarkers(prepared.resolutionOrder)
   setHandLocked(true)
   setResolveButtonLabel('Continue')
   setResolveButtonDisabled(true)
@@ -928,9 +908,6 @@ function serializeCardForText(card) {
     rps: card.rps,
     role: card.role,
     value: card.value,
-    hp: card.hp,
-    buffs: card.buffs,
-    ghostBuffer: Boolean(card.ghostBuffer),
   }
 }
 
@@ -1001,7 +978,6 @@ function init() {
   drawCards()
   updateRoundCounter()
   renderEnemyBoard()
-  reorderColumns()
   renderHand()
   renderDeckButtons()
   refreshVisibleCards()

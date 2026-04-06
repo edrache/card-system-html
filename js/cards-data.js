@@ -1,154 +1,33 @@
 /**
- * Returns a fresh deep copy of all prototype card definitions.
- * Call this every time you need a new deck to avoid shared mutable state.
+ * Returns a fresh deep copy of all card definitions.
+ * Call every time you need a new deck.
  */
 export function createDeck() {
-  return CARD_DEFINITIONS.map((def) => cloneCardDefinition(def))
+  return CARD_DEFINITIONS.map(cloneCard)
 }
 
-function cloneCardDefinition(definition) {
-  return {
-    ...definition,
-    effect: definition.effect ? { ...definition.effect } : null,
-    buffSources: [],
-    buffMeta: {
-      rawTotal: 0,
-      appliedTotal: 0,
-      cappedBy: 0,
-    },
-    ghostBuffer: false,
-    ghostBufferTurns: 0,
-  }
+function cloneCard(def) {
+  return { ...def }
 }
 
 /**
- * All 10 prototype cards.
- * hp and buffs are runtime fields — starts equal to value / 0 respectively.
+ * 12 prototype cards. value = HP and attack range ceiling.
+ * rps: 'rock' | 'paper' | 'scissors'
+ * role: 'attack' | 'defense' | 'support'
  */
 const CARD_DEFINITIONS = [
-  // ── Attack cards ──────────────────────────────────────────────
-  {
-    id: 'aggressor-6',
-    name: 'Aggressor',
-    rps: 'rock',
-    value: 6,
-    role: 'attack',
-    effect: null,
-    effectText: null,
-    hp: 6,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'aggressor-4',
-    name: 'Aggressor',
-    rps: 'scissors',
-    value: 4,
-    role: 'attack',
-    effect: null,
-    effectText: null,
-    hp: 4,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'glass-cannon-5',
-    name: 'Glass Cannon',
-    rps: 'scissors',
-    value: 5,
-    role: 'attack',
-    effect: { extraDamageTaken: 1 },
-    effectText: 'On hit 0/-1',
-    hp: 5,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'opportunist-3',
-    name: 'Opportunist',
-    rps: 'paper',
-    value: 3,
-    role: 'attack',
-    effect: { bonusDamageOnAdvantage: 2 },
-    effectText: 'RPS win +2/0',
-    hp: 3,
-    buffs: 0,
-    buffSources: [],
-  },
+  { id: 'brawler', name: 'Brawler', rps: 'rock', value: 5, role: 'attack' },
+  { id: 'slasher', name: 'Slasher', rps: 'scissors', value: 7, role: 'attack' },
+  { id: 'crusher', name: 'Crusher', rps: 'paper', value: 9, role: 'attack' },
+  { id: 'lunger', name: 'Lunger', rps: 'rock', value: 3, role: 'attack' },
 
-  // ── Defense cards ─────────────────────────────────────────────
-  {
-    id: 'defender-6',
-    name: 'Defender',
-    rps: 'rock',
-    value: 6,
-    role: 'defense',
-    effect: null,
-    effectText: null,
-    hp: 6,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'shield-4',
-    name: 'Shield',
-    rps: 'paper',
-    value: 4,
-    role: 'defense',
-    effect: { extraReduction: 1 },
-    effectText: 'On hit block +1',
-    hp: 4,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'reactive-guard-3',
-    name: 'Reactive Guard',
-    rps: 'scissors',
-    value: 3,
-    role: 'defense',
-    effect: { bonusReductionOnDisadvantage: 2 },
-    effectText: 'RPS loss block +2',
-    hp: 3,
-    buffs: 0,
-    buffSources: [],
-  },
+  { id: 'bulwark', name: 'Bulwark', rps: 'paper', value: 6, role: 'defense' },
+  { id: 'ironclad', name: 'Ironclad', rps: 'rock', value: 8, role: 'defense' },
+  { id: 'buckler', name: 'Buckler', rps: 'scissors', value: 4, role: 'defense' },
 
-  // ── Support cards ─────────────────────────────────────────────
-  {
-    id: 'buffer-3',
-    name: 'Buffer',
-    rps: 'paper',
-    value: 3,
-    role: 'support',
-    effect: null,
-    effectText: 'Adjacent allies +1/0',
-    hp: 3,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'fragile-buffer-2',
-    name: 'Fragile Buffer',
-    rps: 'rock',
-    value: 2,
-    role: 'support',
-    effect: { buffAmount: 2 },
-    effectText: 'Adjacent allies +2/0',
-    hp: 2,
-    buffs: 0,
-    buffSources: [],
-  },
-  {
-    id: 'persistent-buffer-4',
-    name: 'Persistent Buffer',
-    rps: 'scissors',
-    value: 4,
-    role: 'support',
-    effect: { persistBuffTurns: 1 },
-    effectText: 'Adjacent +1/0 persists',
-    hp: 4,
-    buffs: 0,
-    buffSources: [],
-  },
+  { id: 'mentor', name: 'Mentor', rps: 'scissors', value: 3, role: 'support' },
+  { id: 'tactician', name: 'Tactician', rps: 'paper', value: 5, role: 'support' },
+  { id: 'vanguard', name: 'Vanguard', rps: 'rock', value: 7, role: 'support' },
+  { id: 'scout', name: 'Scout', rps: 'scissors', value: 4, role: 'support' },
+  { id: 'warden', name: 'Warden', rps: 'paper', value: 6, role: 'support' },
 ]

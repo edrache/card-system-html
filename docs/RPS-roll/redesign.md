@@ -1,0 +1,13 @@
+- karta ma 1 wartość zamiast dwóch wartości
+- wartość jest jedocześnie hp karty jak i jej siłą
+- kiedy gracz wystawi wszystkie karty i kliknie Resolve zaczynają się walki
+- kolejność walk odbywa się wg kolejności wykładania kart przez gracza (wtedy sloty przesuwają się odpowiednio w górę i pojawia się 1st, 2nd, 3rd między slotami przeciwnika a gracza oznaczające kolejność walk)
+- jest duza zmiana w designie walk. Wartość karty oznacza zakres, z jakiego wylosuje się siła ataku, czyli wartość 7 oznacza, ze wylosuje się liczba z zakresu 1-7
+- dzieje się to dla obu kart w danym slocie, czyli dla karty gracza i karty przeciwnika
+- nastepnie sila ataku mowi o ile spadnie wartosc karty przeciwnika, a sila ataku przeciwnika mowi o ile spadnie wartosc karty gracza
+- jesli wartosc karty spadnie do 0 lub ponizej to karta jest usuwana z planszy i trafia na Cemetery
+- jak wygląda zasada RPS dla walczacych kart? Karta która wygrywa RPS losuje 2 liczby ze swojego zakresu i wybierana jest większa liczba, a przegrywajaca karta losuje 1 liczbe ze swojego zakresu i wybierana jest ta liczba. 
+- w przypadku remisu RPS obie karty losuja 1 liczbę ze swoich zakresów, nastepnie wybierana jest mniejsza liczba z obu wylosowanych liczba (obu walczących kart). Ta liczba jest odejmowana od wartości obu kart
+- w MVP zostawmy typy kart: Attack, Defense i Support, ale ich zdolnosci beda nastepujace: Attack: dodaje +1 do wylosowanej wartości; Defense: odejmuje 1 od wartości ataku przeciwnika; Support: dodaje +1 do wartości kart sąsiadów (czyli przed losowaniem liczb z zakresu)
+- trzeba stworzyć nowy zestaw kart i dać im wartości od 3 do 10
+- karty w przyszłości będą miały efekty specjane w przyszłości

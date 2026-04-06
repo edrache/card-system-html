@@ -28,16 +28,16 @@ export function setResolveButtonDisabled(disabled) {
   btn.disabled = disabled
 }
 
-// ── HP labels on cards ────────────────────────────────────────────────────────
+// ── Value labels on cards ─────────────────────────────────────────────────────
 
 /**
- * Updates or creates the HP label on a card element.
+ * Updates or creates the value label on a card element.
  * @param {HTMLElement} cardEl
- * @param {number}      hp
+ * @param {number}      value
  */
-export function setCardHpLabel(cardEl, hp) {
-  const label = cardEl.querySelector('.card__hp')
-  if (label) label.textContent = `♥\u202F${hp}`
+export function setCardHpLabel(cardEl, value) {
+  const label = cardEl.querySelector('.card__value, .card__hp')
+  if (label) label.textContent = String(value)
 }
 
 // ── Overlay screens ───────────────────────────────────────────────────────────
@@ -69,9 +69,13 @@ export function logRoundResult(result) {
       return
     }
     const { player: p, enemy: e } = entry
+    const pBefore = p.valueBefore ?? p.hpBefore ?? p.hp ?? '?'
+    const pAfter = p.valueAfter ?? p.hpAfter ?? p.hp ?? '?'
+    const eBefore = e.valueBefore ?? e.hpBefore ?? e.hp ?? '?'
+    const eAfter = e.valueAfter ?? e.hpAfter ?? e.hp ?? '?'
     console.log(
-      `Slot ${entry.slot}: ${p.name} dealt ${p.dealt} dmg (hp→${p.hp}${p.died ? ' DEAD' : ''}) ` +
-      `vs ${e.name} dealt ${e.dealt} dmg (hp→${e.hp}${e.died ? ' DEAD' : ''})`
+      `Slot ${entry.slot}: ${p.name} dealt ${p.dealt} dmg (value ${pBefore} -> ${pAfter}${p.died ? ' DEAD' : ''}) ` +
+      `vs ${e.name} dealt ${e.dealt} dmg (value ${eBefore} -> ${eAfter}${e.died ? ' DEAD' : ''})`
     )
   })
   console.log('Outcome:', result.outcome)

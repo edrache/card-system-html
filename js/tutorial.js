@@ -1,7 +1,6 @@
 import { CARD } from '../config/card.config.js'
 import { GAME } from '../config/game.config.js'
 import { LAYOUT } from '../config/layout.config.js'
-import { addBuffSource, ensureBuffState, getBuffSummary } from './buffs.js'
 import { createCardEl as createSharedCardEl, updateCardPresentation } from './card-renderer.js'
 import {
   gameState,
@@ -14,7 +13,6 @@ import {
   resolveCombatStep,
   getResolutionOrder,
 } from './game.js'
-import { createDeck } from './cards-data.js'
 import { initDrag } from './interactions.js'
 
 const TOTAL_STEPS = 25
@@ -26,7 +24,18 @@ const CHAPTER_TITLES = {
   4: 'Chapter 4\nAdvanced',
 }
 
-const CARD_LIBRARY = new Map(createDeck().map((card) => [card.id, card]))
+const CARD_LIBRARY = new Map([
+  ['aggressor-6', { id: 'aggressor-6', name: 'Aggressor', rps: 'rock', value: 6, role: 'attack', effect: null, effectText: null }],
+  ['aggressor-4', { id: 'aggressor-4', name: 'Aggressor', rps: 'scissors', value: 4, role: 'attack', effect: null, effectText: null }],
+  ['glass-cannon-5', { id: 'glass-cannon-5', name: 'Glass Cannon', rps: 'scissors', value: 5, role: 'attack', effect: { extraDamageTaken: 1 }, effectText: 'On hit 0/-1' }],
+  ['opportunist-3', { id: 'opportunist-3', name: 'Opportunist', rps: 'paper', value: 3, role: 'attack', effect: { bonusDamageOnAdvantage: 2 }, effectText: 'RPS win +2/0' }],
+  ['defender-6', { id: 'defender-6', name: 'Defender', rps: 'rock', value: 6, role: 'defense', effect: null, effectText: null }],
+  ['shield-4', { id: 'shield-4', name: 'Shield', rps: 'paper', value: 4, role: 'defense', effect: { extraReduction: 1 }, effectText: 'On hit block +1' }],
+  ['reactive-guard-3', { id: 'reactive-guard-3', name: 'Reactive Guard', rps: 'scissors', value: 3, role: 'defense', effect: { bonusReductionOnDisadvantage: 2 }, effectText: 'RPS loss block +2' }],
+  ['buffer-3', { id: 'buffer-3', name: 'Buffer', rps: 'paper', value: 3, role: 'support', effect: null, effectText: 'Adjacent allies +1/0' }],
+  ['fragile-buffer-2', { id: 'fragile-buffer-2', name: 'Fragile Buffer', rps: 'rock', value: 2, role: 'support', effect: { buffAmount: 2 }, effectText: 'Adjacent allies +2/0' }],
+  ['persistent-buffer-4', { id: 'persistent-buffer-4', name: 'Persistent Buffer', rps: 'scissors', value: 4, role: 'support', effect: { persistBuffTurns: 1 }, effectText: 'Adjacent +1/0 persists' }],
+])
 
 let currentStepIndex = 0
 let placementObserver = null
@@ -60,21 +69,33 @@ function cloneCard(cardId, overrides = {}) {
   return {
     ...template,
     effect: template.effect ? { ...template.effect } : null,
-    buffSources: [],
-    buffs: 0,
-    buffMeta: undefined,
+    tutorialBuffSources: [],
     ...overrides,
   }
 }
 
 function addBuff(card, amount, label, description, scope = 'persistent') {
-  addBuffSource(card, {
-    id: `${label.toLowerCase().replace(/\s+/g, '-')}:${card.id}:${card.buffSources?.length ?? 0}`,
+  if (!card.tutorialBuffSources) card.tutorialBuffSources = []
+  const source = {
+    id: `${label.toLowerCase().replace(/\s+/g, '-')}:${card.id}:${card.tutorialBuffSources.length}`,
     amount,
     label,
     description,
     scope,
-  })
+  }
+  const existingIndex = card.tutorialBuffSources.findIndex((entry) => entry.id === source.id)
+  if (existingIndex === -1) {
+    card.tutorialBuffSources.push(source)
+  } else {
+    card.tutorialBuffSources[existingIndex] = source
+  }
+  return source
+}
+
+function getBuffSummary(card) {
+  const sources = card.tutorialBuffSources ?? []
+  const total = sources.reduce((sum, source) => sum + source.amount, 0)
+  return { total, sources }
 }
 
 function resetGameState() {
@@ -168,11 +189,10 @@ function createSlotEl(id, x, y, enemy = false) {
 }
 
 function createCardEl(card, options = {}) {
-  ensureBuffState(card)
   const summary = getBuffSummary(card)
 
   const el = createSharedCardEl(card, options.enemy)
-  el.classList.toggle('card--tutorial-dead', card.hp <= 0)
+  el.classList.toggle('card--tutorial-dead', card.value <= 0)
   el.style.position = 'absolute'
   el.style.left = `${options.left ?? 0}px`
   el.style.top = `${options.top ?? 0}px`
@@ -194,7 +214,7 @@ function createCardEl(card, options = {}) {
 
   if (options.note) {
     const note = document.createElement('div')
-    note.className = `card__note${card.hp <= 0 ? ' card__note--dead' : ''}`
+    note.className = `card__note${card.value <= 0 ? ' card__note--dead' : ''}`
     note.textContent = options.note
     el.appendChild(note)
   }
@@ -462,11 +482,11 @@ function renderResolvedCombatScene() {
   const enemyNotes = {}
   gameState.playerBoard.forEach((card, index) => {
     if (!card) return
-    playerNotes[index] = card.hp <= 0 ? 'Destroyed in combat' : `Survives at ${card.hp} HP`
+    playerNotes[index] = card.value <= 0 ? 'Destroyed in combat' : `Survives at ${card.value} HP`
   })
   gameState.enemyBoard.forEach((card, index) => {
     if (!card) return
-    enemyNotes[index] = card.hp <= 0 ? 'Destroyed in combat' : `Survives at ${card.hp} HP`
+    enemyNotes[index] = card.value <= 0 ? 'Destroyed in combat' : `Survives at ${card.value} HP`
   })
   renderScene({ playerNotes, enemyNotes })
 }
@@ -556,14 +576,14 @@ function exposeTestState() {
     phase: gameState.phase,
     playerHand: gameState.playerHand.map((card) => ({
       id: card.id,
-      hp: card.hp,
-      buffs: card.buffs,
+      value: card.value,
+      buffs: getBuffSummary(card).total,
     })),
     playerBoard: gameState.playerBoard.map((card) => (
-      card ? { id: card.id, hp: card.hp, buffs: card.buffs } : null
+      card ? { id: card.id, value: card.value, buffs: getBuffSummary(card).total } : null
     )),
     enemyBoard: gameState.enemyBoard.map((card) => (
-      card ? { id: card.id, hp: card.hp, buffs: card.buffs } : null
+      card ? { id: card.id, value: card.value, buffs: getBuffSummary(card).total } : null
     )),
   })
 
@@ -657,12 +677,12 @@ function supportPlacementScene() {
 function supportSurviveScene() {
   resetGameState()
   const left = cloneCard('aggressor-6')
-  const buffer = cloneCard('buffer-3', { hp: 2 })
-  const right = cloneCard('defender-6', { hp: 4 })
-  addBuff(left, GAME.SUPPORT_BUFF_AMOUNT, 'Buffer support', 'Adjacent Buffer on the right')
-  addBuff(left, GAME.SUPPORT_BUFF_ON_SURVIVE, 'Buffer survived', 'Adjacent Buffer survived combat')
-  addBuff(right, GAME.SUPPORT_BUFF_AMOUNT, 'Buffer support', 'Adjacent Buffer on the left')
-  addBuff(right, GAME.SUPPORT_BUFF_ON_SURVIVE, 'Buffer survived', 'Adjacent Buffer survived combat')
+  const buffer = cloneCard('buffer-3', { value: 2 })
+  const right = cloneCard('defender-6', { value: 4 })
+  addBuff(left, 1, 'Buffer support', 'Adjacent Buffer on the right')
+  addBuff(left, 1, 'Buffer survived', 'Adjacent Buffer survived combat')
+  addBuff(right, 1, 'Buffer support', 'Adjacent Buffer on the left')
+  addBuff(right, 1, 'Buffer survived', 'Adjacent Buffer survived combat')
   gameState.playerBoard = [left, buffer, right]
   renderScene()
 }
@@ -680,7 +700,7 @@ function resolutionOrderScene() {
 function buffCapScene() {
   resetGameState()
   const card = cloneCard('aggressor-6')
-  addBuff(card, 2, 'Support bonus', 'First nearby source')
+  addBuff(card, 1, 'Support bonus', 'First nearby source')
   addBuff(card, 2, 'Survival bonus', 'Second nearby source')
   gameState.playerHand = [card]
   renderScene()

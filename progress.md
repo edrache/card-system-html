@@ -11,3 +11,8 @@ Original prompt: chce zebys uzyl kilku agentow i stworzyl tutorial gry wg planu 
 - 2026-04-05: Confirmed the board now exposes player/enemy deck buttons plus a scrollable deck overlay in `index.html` / `js/main.js`.
 - 2026-04-05: Updated browser smoke assertions so deck-count checks are case-insensitive and final deck counts are validated against rendered game state instead of a brittle hard-coded post-round value.
 - 2026-04-05: Re-ran `node tests/game-logic-smoke.mjs` and `python3 tests/rps_browser_smoke.py`; both passed.
+- 2026-04-06: Used multiple subagents to review combat/game/UI/test impact for the RPS dice redesign plan before implementation.
+- 2026-04-06: Replaced legacy `hp + buffs + ghost` combat with `value`-only dice combat, support-adjacency range bonuses, and placement-order resolution markers.
+- 2026-04-06: Rewrote `config/game.config.js`, `js/cards-data.js`, `js/buffs.js`, `js/combat.js`, and `tests/game-logic-smoke.mjs` around the new `value` model.
+- 2026-04-06: Updated shared card rendering, main board UI, and browser smoke coverage so tooltips/badges/deck overlays reflect roll ranges and `1st/2nd/3rd` slot order.
+- 2026-04-06: Re-ran `node tests/game-logic-smoke.mjs` and `python3 tests/rps_browser_smoke.py`; both passed after fixing a combat projection shape mismatch in the renderer.

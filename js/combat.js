@@ -1,26 +1,17 @@
-import { GAME } from '../config/game.config.js'
+import { getSupportBonus } from './buffs.js'
 
-// RPS win table: key beats value
 const RPS_BEATS = {
   rock: 'scissors',
   scissors: 'paper',
   paper: 'rock',
 }
 
-/**
- * Returns the RPS result from attacker's perspective.
- * @returns {'advantage' | 'neutral' | 'disadvantage'}
- */
 export function getRpsResult(attacker, defender) {
   if (attacker.rps === defender.rps) return 'neutral'
   if (RPS_BEATS[attacker.rps] === defender.rps) return 'advantage'
   return 'disadvantage'
 }
 
-/**
- * Returns adjacent allies in a 3-slot row.
- * @returns {[object|null, object|null]} [leftCard, rightCard]
- */
 export function getAdjacentAllies(board, slotIndex) {
   return [
     board[slotIndex - 1] ?? null,
@@ -28,127 +19,158 @@ export function getAdjacentAllies(board, slotIndex) {
   ]
 }
 
-/**
- * Returns net damage dealt by attacker to defender (minimum 0).
- * Reads card.buffs from both sides.
- */
-export function getDamageBreakdown(attacker, defender) {
-  const rps = getRpsResult(attacker, defender)
+function roll(n) {
+  return Math.floor(Math.random() * Math.max(1, n)) + 1
+}
 
-  // Base damage: attacker value + buffs
-  let rawAttack = attacker.value + attacker.buffs
-  const attackModifiers = []
+function applyAttackerRole(card, rolledValue) {
+  if (card.role === 'attack') return rolledValue + 1
+  return rolledValue
+}
 
-  // RPS modifier
-  if (rps === 'advantage') {
-    rawAttack += GAME.RPS_MODIFIER
-    attackModifiers.push({ label: 'RPS advantage', amount: GAME.RPS_MODIFIER })
-  }
-  if (rps === 'disadvantage') {
-    rawAttack -= GAME.RPS_MODIFIER
-    attackModifiers.push({ label: 'RPS disadvantage', amount: -GAME.RPS_MODIFIER })
-  }
+function applyDefenderRole(card, incomingAttack) {
+  if (card.role === 'defense') return Math.max(0, incomingAttack - 1)
+  return incomingAttack
+}
 
-  // Attack role bonus
-  if (attacker.role === 'attack') {
-    rawAttack += GAME.ATTACK_BONUS
-    attackModifiers.push({ label: 'Attack role', amount: GAME.ATTACK_BONUS })
-  }
+export function getEffectiveRange(card, board, slotIndex) {
+  return card.value + getSupportBonus(board, slotIndex)
+}
 
-  // Opportunist effect: +2 on RPS advantage
-  if (attacker.effect?.bonusDamageOnAdvantage && rps === 'advantage') {
-    rawAttack += attacker.effect.bonusDamageOnAdvantage
-    attackModifiers.push({
-      label: 'Opportunist effect',
-      amount: attacker.effect.bonusDamageOnAdvantage,
-    })
-  }
+function buildRange(min, max) {
+  return { min, max }
+}
 
-  // Defense reduction (defender's own reduction)
-  let reduction = 0
-  const reductionSources = []
-  if (defender.role === 'defense') {
-    const defenseBaseHp = typeof defender.hp === 'number' ? defender.hp : defender.value
-    const baseDefenseReduction = Math.ceil(defenseBaseHp * GAME.DEFENSE_REDUCTION)
-    reduction = baseDefenseReduction + (defender.buffs ?? 0)
-    reductionSources.push({
-      label: 'Defense role',
-      amount: baseDefenseReduction,
-      detail: `half of HP ${defenseBaseHp}, rounded up`,
-    })
-    if ((defender.buffs ?? 0) > 0) {
-      reductionSources.push({
-        label: 'Buffs to defense',
-        amount: defender.buffs ?? 0,
-        detail: 'active defense buffs',
-      })
-    }
-  }
+function buildRollMode(rpsResult, isPlayer) {
+  if (rpsResult === 'neutral') return '1x shared'
+  if (rpsResult === 'advantage') return isPlayer ? '2x keep best' : '1x'
+  return isPlayer ? '1x' : '2x keep best'
+}
 
-  // Shield effect: extra -1 after standard reduction
-  if (defender.effect?.extraReduction) {
-    reduction += defender.effect.extraReduction
-    reductionSources.push({
-      label: 'Shield effect',
-      amount: defender.effect.extraReduction,
-      detail: 'card effect',
-    })
-  }
+function getRoleAdjustedRange(attacker, defender, minRoll, maxRoll) {
+  const minAttack = applyAttackerRole(attacker, minRoll)
+  const maxAttack = applyAttackerRole(attacker, maxRoll)
+  return buildRange(
+    applyDefenderRole(defender, minAttack),
+    applyDefenderRole(defender, maxAttack)
+  )
+}
 
-  // Reactive Guard: +2 reduction when at RPS disadvantage (i.e. attacker has advantage)
-  if (defender.effect?.bonusReductionOnDisadvantage && rps === 'advantage') {
-    reduction += defender.effect.bonusReductionOnDisadvantage
-    reductionSources.push({
-      label: 'Reactive Guard effect',
-      amount: defender.effect.bonusReductionOnDisadvantage,
-      detail: 'triggered by RPS disadvantage',
-    })
-  }
+export function getCombatPreview(playerCard, enemyCard, playerBoard, enemyBoard, playerSlot, enemySlot) {
+  const rps = getRpsResult(playerCard, enemyCard)
+  const playerSupportBonus = getSupportBonus(playerBoard, playerSlot)
+  const enemySupportBonus = getSupportBonus(enemyBoard, enemySlot)
+  const playerRange = getEffectiveRange(playerCard, playerBoard, playerSlot)
+  const enemyRange = getEffectiveRange(enemyCard, enemyBoard, enemySlot)
 
-  let damage = rawAttack - reduction
+  let playerDamageRange
+  let enemyDamageRange
 
-  // Glass Cannon: takes +1 extra damage
-  if (defender.effect?.extraDamageTaken) {
-    damage += defender.effect.extraDamageTaken
-    attackModifiers.push({ label: 'Glass Cannon penalty', amount: defender.effect.extraDamageTaken })
+  if (rps === 'neutral') {
+    const sharedMax = Math.min(playerRange, enemyRange)
+    playerDamageRange = buildRange(
+      applyDefenderRole(enemyCard, 1),
+      applyDefenderRole(enemyCard, sharedMax)
+    )
+    enemyDamageRange = buildRange(
+      applyDefenderRole(playerCard, 1),
+      applyDefenderRole(playerCard, sharedMax)
+    )
+  } else {
+    playerDamageRange = getRoleAdjustedRange(playerCard, enemyCard, 1, playerRange)
+    enemyDamageRange = getRoleAdjustedRange(enemyCard, playerCard, 1, enemyRange)
   }
 
   return {
     rps,
-    baseAttack: attacker.value,
-    buffAttack: attacker.buffs ?? 0,
-    rawAttack,
-    attackModifiers,
-    reduction,
-    reductionSources,
-    finalDamage: Math.max(0, damage),
+    label: rps === 'advantage' ? 'ADV' : rps === 'disadvantage' ? 'DIS' : 'EVEN',
+    player: {
+      range: playerRange,
+      supportBonus: playerSupportBonus,
+      rollMode: buildRollMode(rps, true),
+      damageRange: playerDamageRange,
+    },
+    enemy: {
+      range: enemyRange,
+      supportBonus: enemySupportBonus,
+      rollMode: buildRollMode(rps, false),
+      damageRange: enemyDamageRange,
+    },
   }
 }
 
-export function calcDamage(attacker, defender) {
-  return getDamageBreakdown(attacker, defender).finalDamage
-}
+export function resolvePair(playerCard, enemyCard, playerBoard, enemyBoard, playerSlot, enemySlot) {
+  const preview = getCombatPreview(
+    playerCard,
+    enemyCard,
+    playerBoard,
+    enemyBoard,
+    playerSlot,
+    enemySlot
+  )
 
-/**
- * Applies damage to a card. Mutates card.hp.
- * @returns {boolean} true if the card died (hp <= 0)
- */
-export function applyDamage(card, amount) {
-  card.hp -= amount
-  return card.hp <= 0
-}
+  const playerRange = preview.player.range
+  const enemyRange = preview.enemy.range
 
-/**
- * Fully resolves a player card vs enemy card pair.
- * Mutates hp on both cards.
- * @returns {{ aDealt: number, bDealt: number, aDied: boolean, bDied: boolean }}
- */
-export function resolvePair(playerCard, enemyCard) {
-  const aDealt = calcDamage(playerCard, enemyCard)
-  const bDealt = calcDamage(enemyCard, playerCard)
+  let playerDealt
+  let enemyDealt
+  let playerRolls
+  let enemyRolls
 
-  const bDied = applyDamage(enemyCard, aDealt)
-  const aDied = applyDamage(playerCard, bDealt)
+  if (preview.rps === 'neutral') {
+    const playerRoll = roll(playerRange)
+    const enemyRoll = roll(enemyRange)
+    const sharedDamage = Math.min(playerRoll, enemyRoll)
 
-  return { aDealt, bDealt, aDied, bDied }
+    playerRolls = [playerRoll]
+    enemyRolls = [enemyRoll]
+    playerDealt = applyDefenderRole(enemyCard, sharedDamage)
+    enemyDealt = applyDefenderRole(playerCard, sharedDamage)
+  } else {
+    const playerWins = preview.rps === 'advantage'
+
+    const playerRoll1 = roll(playerRange)
+    const playerRoll2 = playerWins ? roll(playerRange) : null
+    const playerRollResult = playerWins ? Math.max(playerRoll1, playerRoll2) : playerRoll1
+    playerRolls = playerWins ? [playerRoll1, playerRoll2] : [playerRoll1]
+
+    const enemyRoll1 = roll(enemyRange)
+    const enemyRoll2 = playerWins ? null : roll(enemyRange)
+    const enemyRollResult = playerWins ? enemyRoll1 : Math.max(enemyRoll1, enemyRoll2)
+    enemyRolls = playerWins ? [enemyRoll1] : [enemyRoll1, enemyRoll2]
+
+    playerDealt = applyDefenderRole(enemyCard, applyAttackerRole(playerCard, playerRollResult))
+    enemyDealt = applyDefenderRole(playerCard, applyAttackerRole(enemyCard, enemyRollResult))
+  }
+
+  const playerValueBefore = playerCard.value
+  const enemyValueBefore = enemyCard.value
+
+  playerCard.value = Math.max(0, playerCard.value - enemyDealt)
+  enemyCard.value = Math.max(0, enemyCard.value - playerDealt)
+
+  return {
+    rps: preview.rps,
+    label: preview.label,
+    player: {
+      rolls: playerRolls,
+      range: playerRange,
+      supportBonus: preview.player.supportBonus,
+      rollMode: preview.player.rollMode,
+      dealt: playerDealt,
+      valueBefore: playerValueBefore,
+      valueAfter: playerCard.value,
+      died: playerCard.value <= 0,
+    },
+    enemy: {
+      rolls: enemyRolls,
+      range: enemyRange,
+      supportBonus: preview.enemy.supportBonus,
+      rollMode: preview.enemy.rollMode,
+      dealt: enemyDealt,
+      valueBefore: enemyValueBefore,
+      valueAfter: enemyCard.value,
+      died: enemyCard.value <= 0,
+    },
+  }
 }

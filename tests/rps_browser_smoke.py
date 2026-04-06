@@ -10,16 +10,18 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:4173/index.html")
 
 BASE_DECK_ORDER = [
-    "aggressor-6",
-    "aggressor-4",
-    "glass-cannon-5",
-    "opportunist-3",
-    "defender-6",
-    "shield-4",
-    "reactive-guard-3",
-    "buffer-3",
-    "fragile-buffer-2",
-    "persistent-buffer-4",
+    "brawler",
+    "slasher",
+    "crusher",
+    "lunger",
+    "bulwark",
+    "ironclad",
+    "buckler",
+    "mentor",
+    "tactician",
+    "vanguard",
+    "scout",
+    "warden",
 ]
 
 
@@ -74,10 +76,17 @@ with sync_playwright() as playwright:
 
     page.goto(BASE_URL, wait_until="networkidle")
 
-    assert page.locator("#cards .card").count() == 3
-    assert page.locator("#enemy-cards .card").count() == 3
+    initial_player_cards = page.locator("#cards .card").count()
+    initial_enemy_cards = page.locator("#enemy-cards .card").count()
+    if initial_player_cards != 3 or initial_enemy_cards != 3:
+        print("initial_player_cards", initial_player_cards)
+        print("initial_enemy_cards", initial_enemy_cards)
+        print("page_errors", page_errors)
+        print("console_errors", console_errors)
+    assert initial_player_cards == 3
+    assert initial_enemy_cards == 3
     assert page.locator(".column-fight-marker").count() == 3
-    assert page.locator(".column-fight-marker__order").count() == 3
+    assert page.locator(".column-marker--order").count() == 3
     assert page.locator("#btn-resolve").is_enabled() is False
     assert page.locator("#enemy-deck-button").count() == 1
     assert page.locator("#enemy-cemetery-button").count() == 1
@@ -85,11 +94,11 @@ with sync_playwright() as playwright:
     assert page.locator("#player-cemetery-button").count() == 1
 
     initial_state = get_text_state(page)
-    assert initial_state["playerDeckCount"] == 7
+    assert initial_state["playerDeckCount"] == 9
     assert initial_state["playerCemeteryCount"] == 0
-    assert initial_state["enemyDeckCount"] == 7
+    assert initial_state["enemyDeckCount"] == 9
     assert initial_state["enemyCemeteryCount"] == 0
-    assert [card["id"] for card in initial_state["playerDeck"]] != BASE_DECK_ORDER[:7]
+    assert [card["id"] for card in initial_state["playerDeck"]] != BASE_DECK_ORDER[:9]
     player_deck_count_text = page.locator("#player-deck-count").inner_text()
     enemy_deck_count_text = page.locator("#enemy-deck-count").inner_text()
     assert player_deck_count_text.lower() == format_deck_count(initial_state["playerDeckCount"]), player_deck_count_text
@@ -97,7 +106,7 @@ with sync_playwright() as playwright:
 
     page.locator("#player-deck-button").click()
     assert page.locator("#deck-overlay-title").inner_text() == "Player Deck"
-    assert page.locator(".deck-list-item").count() == 7
+    assert page.locator(".deck-list-item").count() == 9
     assert page.locator(".deck-list-item").nth(0).inner_text().startswith("#1")
     assert page.locator(".deck-overlay__list").evaluate(
         "el => ['auto', 'scroll'].includes(getComputedStyle(el).overflowY)"
@@ -107,7 +116,7 @@ with sync_playwright() as playwright:
 
     page.locator("#enemy-deck-button").click()
     assert page.locator("#deck-overlay-title").inner_text() == "Opponent Deck"
-    assert page.locator(".deck-list-item").count() == 7
+    assert page.locator(".deck-list-item").count() == 9
     page.locator("#deck-overlay-close").click()
     assert page.locator("#overlay.hidden").count() == 1
 
@@ -138,26 +147,36 @@ with sync_playwright() as playwright:
     page.screenshot(path=str(OUTPUT_DIR / "before-placement.png"), full_page=True)
 
     drag_card_to_slot(page, 0, 0)
-    assert page.locator("#cards .card").nth(0).get_attribute("data-slot-id") == "slot-0"
-    assert page.locator("#cards .card").nth(0).locator(".card__preview").count() == 0
-    assert page.locator("#cards .card").nth(0).locator(".card__stats").count() == 1
-    assert page.locator("#cards .card").nth(0).locator(".card__attack").count() == 1
-    assert page.locator("#cards .card").nth(0).locator(".card__hp").count() == 1
-    assert page.locator("#cards .card").nth(0).locator(".card__combat-badge").count() == 1
-    assert "ME" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
-    assert "EN" in page.locator("#cards .card").nth(0).locator(".card__combat-badge").inner_text()
+    placed_card = page.locator("#cards .card[data-slot-id='slot-0']")
+    assert placed_card.count() == 1
+    assert placed_card.get_attribute("data-slot-id") == "slot-0"
+    assert placed_card.locator(".card__preview").count() == 0
+    assert placed_card.locator(".card__stats").count() == 1
+    assert placed_card.locator(".card__value").count() == 1
+    if placed_card.locator(".card__combat-badge").count() != 1:
+        print("placed_card_html", placed_card.inner_html())
+        print("page_errors_after_drag", page_errors)
+        print("console_errors_after_drag", console_errors)
+    assert placed_card.locator(".card__combat-badge").count() == 1
+    assert "THIS" in placed_card.locator(".card__combat-badge").inner_text()
+    assert "OPP" in placed_card.locator(".card__combat-badge").inner_text()
 
-    page.locator("#cards .card").nth(0).hover()
-    assert page.locator("#cards .card").nth(0).locator(".card__tooltip").count() == 1
-    assert "Base:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
-    assert "Current:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
-    assert "Your attack" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
-    assert "Outcome:" in page.locator("#cards .card").nth(0).locator(".card__tooltip").inner_text()
+    placed_card.hover()
+    assert placed_card.locator(".card__tooltip").count() == 1
+    assert "Roll range:" in placed_card.locator(".card__tooltip").inner_text()
+    assert "Matchup:" in placed_card.locator(".card__tooltip").inner_text()
+    assert "This side rolls" in placed_card.locator(".card__tooltip").inner_text()
+    assert "Other side rolls" in placed_card.locator(".card__tooltip").inner_text()
 
     drag_card_to_slot(page, 1, 1)
     page.locator("#cards .card[data-slot-id='slot-1']").hover()
-    assert "Combat:" in page.locator("#cards .card[data-slot-id='slot-1'] .card__tooltip").inner_text()
+    assert "Matchup:" in page.locator("#cards .card[data-slot-id='slot-1'] .card__tooltip").inner_text()
     drag_card_to_slot(page, 2, 2)
+
+    order_labels = [label.strip().lower() for label in page.locator(".column-marker--order").all_inner_texts()]
+    assert any("1st" in label for label in order_labels)
+    assert any("2nd" in label for label in order_labels)
+    assert any("3rd" in label for label in order_labels)
 
     assert page.locator("#btn-resolve").is_enabled() is True
     assert page_errors == []
