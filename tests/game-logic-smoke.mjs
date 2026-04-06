@@ -25,7 +25,7 @@ function makeCard(overrides = {}) {
   return {
     id: `test-card-${cardCounter}`,
     name: 'Test Card',
-    rps: 'rock',
+    rps: 'pressure',
     value: 5,
     role: 'support',
     ...overrides,
@@ -49,13 +49,13 @@ function withRandomSequence(sequence, fn) {
 }
 
 assert.equal(createPlayerDeck().length, 12)
-assert.equal(getRpsResult({ rps: 'rock' }, { rps: 'scissors' }), 'advantage')
-assert.equal(getRpsResult({ rps: 'rock' }, { rps: 'paper' }), 'disadvantage')
-assert.equal(getRpsResult({ rps: 'paper' }, { rps: 'paper' }), 'neutral')
+assert.equal(getRpsResult({ rps: 'pressure' }, { rps: 'positioning' }), 'advantage')
+assert.equal(getRpsResult({ rps: 'pressure' }, { rps: 'appeal' }), 'disadvantage')
+assert.equal(getRpsResult({ rps: 'appeal' }, { rps: 'appeal' }), 'neutral')
 
 const previewBoard = [
   makeCard({ id: 'support-left', role: 'support', value: 3 }),
-  makeCard({ id: 'frontliner', role: 'attack', rps: 'rock', value: 5 }),
+  makeCard({ id: 'frontliner', role: 'attack', rps: 'pressure', value: 5 }),
   null,
 ]
 assert.equal(getSupportBonus(previewBoard, 1), 1)
@@ -63,9 +63,9 @@ assert.equal(getSupportBonus(previewBoard, 0), 0)
 
 const combatPreview = getCombatPreview(
   previewBoard[1],
-  makeCard({ id: 'enemy', role: 'defense', rps: 'scissors', value: 3 }),
+  makeCard({ id: 'enemy', role: 'defense', rps: 'positioning', value: 3 }),
   previewBoard,
-  [null, makeCard({ id: 'enemy-board', role: 'defense', rps: 'scissors', value: 3 }), null],
+  [null, makeCard({ id: 'enemy-board', role: 'defense', rps: 'positioning', value: 3 }), null],
   1,
   1
 )
@@ -75,8 +75,8 @@ assert.deepEqual(combatPreview.player.damageRange, { min: 1, max: 6 })
 assert.deepEqual(combatPreview.enemy.damageRange, { min: 1, max: 3 })
 
 withRandomSequence([0.7, 0.1, 0.3], () => {
-  const player = makeCard({ id: 'player', role: 'attack', rps: 'rock', value: 5 })
-  const enemy = makeCard({ id: 'enemy', role: 'defense', rps: 'scissors', value: 3 })
+  const player = makeCard({ id: 'player', role: 'attack', rps: 'pressure', value: 5 })
+  const enemy = makeCard({ id: 'enemy', role: 'defense', rps: 'positioning', value: 3 })
   const result = resolvePair(player, enemy, [null, player, null], [null, enemy, null], 1, 1)
 
   assert.equal(result.rps, 'advantage')
@@ -93,8 +93,8 @@ withRandomSequence([0.7, 0.1, 0.3], () => {
 })
 
 withRandomSequence([0.8, 0.3], () => {
-  const player = makeCard({ id: 'player-neutral', role: 'defense', rps: 'rock', value: 5 })
-  const enemy = makeCard({ id: 'enemy-neutral', role: 'support', rps: 'rock', value: 4 })
+  const player = makeCard({ id: 'player-neutral', role: 'defense', rps: 'pressure', value: 5 })
+  const enemy = makeCard({ id: 'enemy-neutral', role: 'support', rps: 'pressure', value: 4 })
   const result = resolvePair(player, enemy, [null, player, null], [null, enemy, null], 1, 1)
 
   assert.equal(result.rps, 'neutral')
@@ -161,16 +161,16 @@ gameState.playerDeck = []
 gameState.playerHand = []
 gameState.playerCemetery = []
 gameState.playerBoard = [
-  makeCard({ id: 'alpha', name: 'Alpha', role: 'attack', rps: 'rock', value: 9 }),
-  makeCard({ id: 'beta', name: 'Beta', role: 'attack', rps: 'paper', value: 8 }),
-  makeCard({ id: 'gamma', name: 'Gamma', role: 'attack', rps: 'scissors', value: 7 }),
+  makeCard({ id: 'alpha', name: 'Alpha', role: 'attack', rps: 'pressure', value: 9 }),
+  makeCard({ id: 'beta', name: 'Beta', role: 'attack', rps: 'appeal', value: 8 }),
+  makeCard({ id: 'gamma', name: 'Gamma', role: 'attack', rps: 'positioning', value: 7 }),
 ]
 gameState.enemyDeck = []
 gameState.enemyCemetery = []
 gameState.enemyBoard = [
-  makeCard({ id: 'weak-a', name: 'Weak A', role: 'support', rps: 'scissors', value: 3 }),
-  makeCard({ id: 'weak-b', name: 'Weak B', role: 'support', rps: 'rock', value: 3 }),
-  makeCard({ id: 'weak-c', name: 'Weak C', role: 'support', rps: 'paper', value: 3 }),
+  makeCard({ id: 'weak-a', name: 'Weak A', role: 'support', rps: 'positioning', value: 3 }),
+  makeCard({ id: 'weak-b', name: 'Weak B', role: 'support', rps: 'pressure', value: 3 }),
+  makeCard({ id: 'weak-c', name: 'Weak C', role: 'support', rps: 'appeal', value: 3 }),
 ]
 gameState.placementOrder = [...gameState.playerBoard]
 

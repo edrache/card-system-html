@@ -1,9 +1,9 @@
 import { getSupportBonus } from './buffs.js'
 
 const RPS_BEATS = {
-  rock: 'scissors',
-  scissors: 'paper',
-  paper: 'rock',
+  pressure: 'positioning',
+  positioning: 'appeal',
+  appeal: 'pressure',
 }
 
 export function getRpsResult(attacker, defender) {

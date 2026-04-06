@@ -27,9 +27,9 @@ import {
 } from './ui.js'
 
 const RPS_ICON = {
-  rock: '✊',
-  paper: '✋',
-  scissors: '✌️',
+  pressure: '🔥',
+  appeal: '🎭',
+  positioning: '🧭',
 }
 
 const ROLE_TEXT = {

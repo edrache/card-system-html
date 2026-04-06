@@ -25,18 +25,18 @@ const CHAPTER_TITLES = {
 }
 
 const CARD_LIBRARY = new Map([
-  ['brawler', { id: 'brawler', name: 'Brawler', rps: 'rock', value: 5, role: 'attack' }],
-  ['slasher', { id: 'slasher', name: 'Slasher', rps: 'scissors', value: 7, role: 'attack' }],
-  ['crusher', { id: 'crusher', name: 'Crusher', rps: 'paper', value: 9, role: 'attack' }],
-  ['lunger', { id: 'lunger', name: 'Lunger', rps: 'rock', value: 3, role: 'attack' }],
-  ['bulwark', { id: 'bulwark', name: 'Bulwark', rps: 'paper', value: 6, role: 'defense' }],
-  ['ironclad', { id: 'ironclad', name: 'Ironclad', rps: 'rock', value: 8, role: 'defense' }],
-  ['buckler', { id: 'buckler', name: 'Buckler', rps: 'scissors', value: 4, role: 'defense' }],
-  ['mentor', { id: 'mentor', name: 'Mentor', rps: 'scissors', value: 3, role: 'support' }],
-  ['tactician', { id: 'tactician', name: 'Tactician', rps: 'paper', value: 5, role: 'support' }],
-  ['vanguard', { id: 'vanguard', name: 'Vanguard', rps: 'rock', value: 7, role: 'support' }],
-  ['scout', { id: 'scout', name: 'Scout', rps: 'scissors', value: 4, role: 'support' }],
-  ['warden', { id: 'warden', name: 'Warden', rps: 'paper', value: 6, role: 'support' }],
+  ['brawler',   { id: 'brawler',   name: 'Break Will',      rps: 'pressure',    value: 5, role: 'attack'  }],
+  ['slasher',   { id: 'slasher',   name: 'Cut an Opening',  rps: 'positioning', value: 7, role: 'attack'  }],
+  ['crusher',   { id: 'crusher',   name: 'Crush Doubt',     rps: 'appeal',      value: 9, role: 'attack'  }],
+  ['lunger',    { id: 'lunger',    name: 'All-In Strike',   rps: 'pressure',    value: 3, role: 'attack'  }],
+  ['bulwark',   { id: 'bulwark',   name: 'Hold Composure',  rps: 'appeal',      value: 6, role: 'defense' }],
+  ['ironclad',  { id: 'ironclad',  name: 'Stand Unbroken',  rps: 'pressure',    value: 8, role: 'defense' }],
+  ['buckler',   { id: 'buckler',   name: 'Slip the Blow',   rps: 'positioning', value: 4, role: 'defense' }],
+  ['mentor',    { id: 'mentor',    name: 'Guide the Move',  rps: 'positioning', value: 3, role: 'support' }],
+  ['tactician', { id: 'tactician', name: 'Shape Intent',    rps: 'appeal',      value: 5, role: 'support' }],
+  ['vanguard',  { id: 'vanguard',  name: 'Lead the Charge', rps: 'pressure',    value: 7, role: 'support' }],
+  ['scout',     { id: 'scout',     name: 'Mark the Path',   rps: 'positioning', value: 4, role: 'support' }],
+  ['warden',    { id: 'warden',    name: 'Steady Hearts',   rps: 'appeal',      value: 6, role: 'support' }],
 ])
 
 let currentStepIndex = 0
@@ -856,7 +856,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'card-anatomy',
     chapter: 1,
-    tooltip: 'This is a card.\n\nTop: name and role.\nCenter: RPS symbol.\nBadge: current value.\nBottom: role reminder text.',
+    tooltip: 'This is a card.\n\nTop: name and role.\nCenter: Approach symbol.\nBadge: current value.\nBottom: role reminder text.',
     highlight: '#cards .card',
     lock: 'all',
     advance: 'click',
@@ -874,7 +874,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'rps-intro',
     chapter: 1,
-    tooltip: 'Rock ✊ beats Scissors ✌️.\nScissors ✌️ beats Paper ✋.\nPaper ✋ beats Rock ✊.\n\nRPS does not add flat damage now. It changes how you roll.',
+    tooltip: 'Pressure 🔥 beats Positioning 🧭.\nPositioning 🧭 beats Appeal 🎭.\nAppeal 🎭 beats Pressure 🔥.\n\nThe approach does not add flat damage. It changes how you roll.',
     highlight: '#enemy-cards .card, #cards .card',
     lock: 'all',
     advance: 'click',
@@ -964,7 +964,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'rps-advantage',
     chapter: 3,
-    tooltip: 'If your card wins the RPS matchup, it rolls twice and keeps the higher result.\n\nThat is the new advantage rule.',
+    tooltip: 'If your card wins the approach matchup, it rolls twice and keeps the higher result.\n\nThat is the advantage rule.',
     highlight: '#cards .card[data-id="brawler"], #enemy-cards .card[data-id="slasher"]',
     lock: 'all',
     advance: 'click',
@@ -973,7 +973,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'rps-disadvantage',
     chapter: 3,
-    tooltip: 'If your card loses the RPS matchup, it rolls once while the winner gets the stronger roll mode.\n\nBad matchups still matter even on high-value cards.',
+    tooltip: 'If your card loses the approach matchup, it rolls once while the winner gets the stronger roll mode.\n\nBad matchups still matter even on high-value cards.',
     highlight: '#cards .card[data-id="brawler"], #enemy-cards .card[data-id="warden"]',
     lock: 'all',
     advance: 'click',
@@ -982,7 +982,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'rps-neutral',
     chapter: 3,
-    tooltip: 'On an RPS tie, both sides roll once.\n\nThe lower of those two rolls becomes shared damage dealt to both cards.',
+    tooltip: 'On an approach tie, both sides roll once.\n\nThe lower of those two rolls becomes shared damage dealt to both cards.',
     highlight: '#cards .card[data-id="scout"], #enemy-cards .card[data-id="buckler"]',
     lock: 'all',
     advance: 'click',
@@ -1054,7 +1054,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'summary',
     chapter: 4,
-    tooltip: 'Remember the whole system:\n\nValue = HP and roll ceiling.\nRPS changes roll mode.\nRoles bend the math.\nPlacement order decides fight order.',
+    tooltip: 'Remember the whole system:\n\nValue = HP and roll ceiling.\nApproach changes roll mode.\nRoles bend the math.\nPlacement order decides fight order.',
     highlight: '#rules-panel',
     lock: 'all',
     advance: 'click',

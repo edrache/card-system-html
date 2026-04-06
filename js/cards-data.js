@@ -20,46 +20,46 @@ function cloneCard(def) {
 
 /**
  * 12 player cards. value range: 3–6.
- * rps: 'rock' | 'paper' | 'scissors'
+ * rps: 'pressure' | 'appeal' | 'positioning'
  * role: 'attack' | 'defense' | 'support'
  * owner: 'player'
  */
 const PLAYER_CARD_DEFINITIONS = [
-  { id: 'brawler',   name: 'Brawler',   rps: 'rock',     value: 5, role: 'attack',  owner: 'player' },
-  { id: 'slasher',   name: 'Slasher',   rps: 'scissors', value: 6, role: 'attack',  owner: 'player' },
-  { id: 'crusher',   name: 'Crusher',   rps: 'paper',    value: 6, role: 'attack',  owner: 'player' },
-  { id: 'lunger',    name: 'Lunger',    rps: 'rock',     value: 3, role: 'attack',  owner: 'player' },
+  { id: 'brawler',   name: 'Break Will',       rps: 'pressure',    value: 5, role: 'attack',  owner: 'player' },
+  { id: 'slasher',   name: 'Cut an Opening',   rps: 'positioning', value: 6, role: 'attack',  owner: 'player' },
+  { id: 'crusher',   name: 'Crush Doubt',      rps: 'appeal',      value: 6, role: 'attack',  owner: 'player' },
+  { id: 'lunger',    name: 'All-In Strike',    rps: 'pressure',    value: 3, role: 'attack',  owner: 'player' },
 
-  { id: 'bulwark',   name: 'Bulwark',   rps: 'paper',    value: 6, role: 'defense', owner: 'player' },
-  { id: 'ironclad',  name: 'Ironclad',  rps: 'rock',     value: 5, role: 'defense', owner: 'player' },
-  { id: 'buckler',   name: 'Buckler',   rps: 'scissors', value: 4, role: 'defense', owner: 'player' },
+  { id: 'bulwark',   name: 'Hold Composure',   rps: 'appeal',      value: 6, role: 'defense', owner: 'player' },
+  { id: 'ironclad',  name: 'Stand Unbroken',   rps: 'pressure',    value: 5, role: 'defense', owner: 'player' },
+  { id: 'buckler',   name: 'Slip the Blow',    rps: 'positioning', value: 4, role: 'defense', owner: 'player' },
 
-  { id: 'mentor',    name: 'Mentor',    rps: 'scissors', value: 3, role: 'support', owner: 'player' },
-  { id: 'tactician', name: 'Tactician', rps: 'paper',    value: 5, role: 'support', owner: 'player' },
-  { id: 'vanguard',  name: 'Vanguard',  rps: 'rock',     value: 6, role: 'support', owner: 'player' },
-  { id: 'scout',     name: 'Scout',     rps: 'scissors', value: 4, role: 'support', owner: 'player' },
-  { id: 'warden',    name: 'Warden',    rps: 'paper',    value: 6, role: 'support', owner: 'player' },
+  { id: 'mentor',    name: 'Guide the Move',   rps: 'positioning', value: 3, role: 'support', owner: 'player' },
+  { id: 'tactician', name: 'Shape Intent',     rps: 'appeal',      value: 5, role: 'support', owner: 'player' },
+  { id: 'vanguard',  name: 'Lead the Charge',  rps: 'pressure',    value: 6, role: 'support', owner: 'player' },
+  { id: 'scout',     name: 'Mark the Path',    rps: 'positioning', value: 4, role: 'support', owner: 'player' },
+  { id: 'warden',    name: 'Steady Hearts',    rps: 'appeal',      value: 6, role: 'support', owner: 'player' },
 ]
 
 /**
  * 12 enemy cards. value range: 3–5.
- * rps: 'rock' | 'paper' | 'scissors'
+ * rps: 'pressure' | 'appeal' | 'positioning'
  * role: 'attack' | 'defense' | 'support'
  * owner: 'enemy'
  */
 const ENEMY_CARD_DEFINITIONS = [
-  { id: 'brawler',   name: 'Brawler',   rps: 'rock',     value: 5, role: 'attack',  owner: 'enemy' },
-  { id: 'slasher',   name: 'Slasher',   rps: 'scissors', value: 5, role: 'attack',  owner: 'enemy' },
-  { id: 'crusher',   name: 'Crusher',   rps: 'paper',    value: 5, role: 'attack',  owner: 'enemy' },
-  { id: 'lunger',    name: 'Lunger',    rps: 'rock',     value: 3, role: 'attack',  owner: 'enemy' },
+  { id: 'brawler',   name: 'Break Will',       rps: 'pressure',    value: 5, role: 'attack',  owner: 'enemy' },
+  { id: 'slasher',   name: 'Cut an Opening',   rps: 'positioning', value: 5, role: 'attack',  owner: 'enemy' },
+  { id: 'crusher',   name: 'Crush Doubt',      rps: 'appeal',      value: 5, role: 'attack',  owner: 'enemy' },
+  { id: 'lunger',    name: 'All-In Strike',    rps: 'pressure',    value: 3, role: 'attack',  owner: 'enemy' },
 
-  { id: 'bulwark',   name: 'Bulwark',   rps: 'paper',    value: 5, role: 'defense', owner: 'enemy' },
-  { id: 'ironclad',  name: 'Ironclad',  rps: 'rock',     value: 5, role: 'defense', owner: 'enemy' },
-  { id: 'buckler',   name: 'Buckler',   rps: 'scissors', value: 4, role: 'defense', owner: 'enemy' },
+  { id: 'bulwark',   name: 'Hold Composure',   rps: 'appeal',      value: 5, role: 'defense', owner: 'enemy' },
+  { id: 'ironclad',  name: 'Stand Unbroken',   rps: 'pressure',    value: 5, role: 'defense', owner: 'enemy' },
+  { id: 'buckler',   name: 'Slip the Blow',    rps: 'positioning', value: 4, role: 'defense', owner: 'enemy' },
 
-  { id: 'mentor',    name: 'Mentor',    rps: 'scissors', value: 3, role: 'support', owner: 'enemy' },
-  { id: 'tactician', name: 'Tactician', rps: 'paper',    value: 5, role: 'support', owner: 'enemy' },
-  { id: 'vanguard',  name: 'Vanguard',  rps: 'rock',     value: 5, role: 'support', owner: 'enemy' },
-  { id: 'scout',     name: 'Scout',     rps: 'scissors', value: 4, role: 'support', owner: 'enemy' },
-  { id: 'warden',    name: 'Warden',    rps: 'paper',    value: 5, role: 'support', owner: 'enemy' },
+  { id: 'mentor',    name: 'Guide the Move',   rps: 'positioning', value: 3, role: 'support', owner: 'enemy' },
+  { id: 'tactician', name: 'Shape Intent',     rps: 'appeal',      value: 5, role: 'support', owner: 'enemy' },
+  { id: 'vanguard',  name: 'Lead the Charge',  rps: 'pressure',    value: 5, role: 'support', owner: 'enemy' },
+  { id: 'scout',     name: 'Mark the Path',    rps: 'positioning', value: 4, role: 'support', owner: 'enemy' },
+  { id: 'warden',    name: 'Steady Hearts',    rps: 'appeal',      value: 5, role: 'support', owner: 'enemy' },
 ]

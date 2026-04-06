@@ -1,6 +1,6 @@
 import { CARD } from '../config/card.config.js'
 
-const RPS_ICON = { rock: '✊', paper: '✋', scissors: '✌️' }
+const RPS_ICON = { pressure: '🔥', appeal: '🎭', positioning: '🧭' }
 
 function titleCase(value = '') {
   return value ? `${value[0].toUpperCase()}${value.slice(1)}` : ''
