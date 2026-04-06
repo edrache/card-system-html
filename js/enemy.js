@@ -1,4 +1,4 @@
-import { createDeck } from './cards-data.js'
+import { createEnemyCardDeck } from './cards-data.js'
 import { GAME } from '../config/game.config.js'
 
 /**
@@ -17,7 +17,7 @@ export function shuffleDeck(deck) {
  * Builds the enemy's starting deck — a shuffled full deck.
  */
 export function createEnemyDeck() {
-  return shuffleDeck(createDeck())
+  return shuffleDeck(createEnemyCardDeck())
 }
 
 /**

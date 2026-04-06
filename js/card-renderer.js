@@ -100,6 +100,23 @@ function updateStatsCluster(cardEl, card, supportBonus) {
   }
 }
 
+function updatePreviousValueBadge(cardEl, previousValue = null) {
+  const existing = cardEl.querySelector('.card__value-previous')
+
+  if (previousValue === null || previousValue === undefined) {
+    existing?.remove()
+    return
+  }
+
+  const badge = existing ?? document.createElement('div')
+  badge.className = 'card__value-previous'
+  badge.textContent = `Prev ${previousValue}`
+
+  if (!existing) {
+    cardEl.querySelector('.card__stats-cluster')?.prepend(badge)
+  }
+}
+
 function updateCombatBadge(cardEl, combatProjection = null) {
   const existing = cardEl.querySelector('.card__combat-badge')
   if (!combatProjection) {
@@ -125,8 +142,11 @@ function updateCombatBadge(cardEl, combatProjection = null) {
 }
 
 export function updateCardPresentation(cardEl, card, context = null) {
-  let normalizedContext = { combatProjection: null }
-  if (context && ('combatProjection' in context || 'supportBonus' in context || 'effectiveRange' in context)) {
+  let normalizedContext = { combatProjection: null, previousValue: null }
+  if (
+    context &&
+    ('combatProjection' in context || 'supportBonus' in context || 'effectiveRange' in context || 'previousValue' in context)
+  ) {
     normalizedContext = context
   } else if (context && ('label' in context || 'rps' in context)) {
     normalizedContext = { combatProjection: context }
@@ -134,8 +154,10 @@ export function updateCardPresentation(cardEl, card, context = null) {
   const combatProjection = normalizedContext.combatProjection ?? null
   const supportBonus = normalizedContext.supportBonus ?? combatProjection?.supportBonus ?? 0
   const effectiveRange = normalizedContext.effectiveRange ?? combatProjection?.effectiveRange ?? (card.value + supportBonus)
+  const previousValue = normalizedContext.previousValue ?? null
 
   updateStatsCluster(cardEl, card, supportBonus)
+  updatePreviousValueBadge(cardEl, previousValue)
 
   const oldTooltip = cardEl.querySelector('.card__tooltip')
   const newTooltip = createCardTooltip(card, supportBonus, effectiveRange, combatProjection)

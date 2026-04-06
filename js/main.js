@@ -506,6 +506,7 @@ function clearCombatHighlights() {
   document.querySelectorAll('.card--resolving').forEach((el) => el.classList.remove('card--resolving'))
   document.querySelectorAll('.card__resolution-note').forEach((el) => el.remove())
   document.querySelectorAll('.card__roll-frame').forEach((el) => el.remove())
+  document.querySelectorAll('.card__value-previous').forEach((el) => el.remove())
 }
 
 function highlightCombatPair(slotIndex) {
@@ -548,8 +549,25 @@ function getChosenRoll(rolls = []) {
   return Math.max(...rolls)
 }
 
+function getChosenRollIndex(sideResult) {
+  if (!sideResult || !Array.isArray(sideResult.rolls) || sideResult.rolls.length === 0) {
+    return -1
+  }
+
+  if (
+    Number.isInteger(sideResult.chosenRollIndex) &&
+    sideResult.chosenRollIndex >= 0 &&
+    sideResult.chosenRollIndex < sideResult.rolls.length
+  ) {
+    return sideResult.chosenRollIndex
+  }
+
+  const chosenRoll = sideResult.chosenRoll ?? getChosenRoll(sideResult.rolls)
+  return sideResult.rolls.findIndex((value) => value === chosenRoll)
+}
+
 function createRollFrame(sideResult) {
-  const chosenRoll = getChosenRoll(sideResult.rolls)
+  const chosenRoll = sideResult.chosenRoll ?? getChosenRoll(sideResult.rolls)
   if (chosenRoll === null) return null
 
   const frame = document.createElement('div')
@@ -557,19 +575,30 @@ function createRollFrame(sideResult) {
 
   const label = document.createElement('div')
   label.className = 'card__roll-label'
-  label.textContent = 'Roll'
-
-  const value = document.createElement('div')
-  value.className = 'card__roll-value'
-  value.textContent = String(chosenRoll)
+  label.textContent = sideResult.rolls.length > 1 ? 'Rolls' : 'Roll'
 
   frame.appendChild(label)
-  frame.appendChild(value)
+
+  const values = document.createElement('div')
+  values.className = 'card__roll-values'
+  const chosenRollIndex = getChosenRollIndex(sideResult)
+
+  sideResult.rolls.forEach((rollValue, index) => {
+    const rollChip = document.createElement('div')
+    const isChosen = index === chosenRollIndex
+    rollChip.className = isChosen
+      ? 'card__roll-chip card__roll-chip--chosen'
+      : 'card__roll-chip'
+    rollChip.textContent = String(rollValue)
+    values.appendChild(rollChip)
+  })
+
+  frame.appendChild(values)
 
   if (sideResult.rolls.length > 1) {
     const detail = document.createElement('div')
     detail.className = 'card__roll-detail'
-    detail.textContent = sideResult.rolls.join(' / ')
+    detail.textContent = `Chosen ${chosenRoll}`
     frame.appendChild(detail)
   }
 
@@ -581,7 +610,7 @@ function showResolutionState(cardEl, sideResult, card) {
 
   cardEl.classList.add('card--resolving')
   cardEl.classList.toggle('card--destroyed', sideResult.died)
-  updateCardPresentation(cardEl, card)
+  updateCardPresentation(cardEl, card, { previousValue: sideResult.valueBefore })
   cardEl.querySelector('.card__resolution-note')?.remove()
   cardEl.querySelector('.card__roll-frame')?.remove()
   const rollFrame = createRollFrame(sideResult)

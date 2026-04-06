@@ -23,6 +23,21 @@ function roll(n) {
   return Math.floor(Math.random() * Math.max(1, n)) + 1
 }
 
+function pickHighestRoll(rolls) {
+  let chosenRoll = null
+  let chosenRollIndex = -1
+
+  rolls.forEach((value, index) => {
+    if (value === null || value === undefined) return
+    if (chosenRoll === null || value > chosenRoll) {
+      chosenRoll = value
+      chosenRollIndex = index
+    }
+  })
+
+  return { chosenRoll, chosenRollIndex }
+}
+
 function applyAttackerRole(card, rolledValue) {
   if (card.role === 'attack') return rolledValue + 1
   return rolledValue
@@ -116,6 +131,10 @@ export function resolvePair(playerCard, enemyCard, playerBoard, enemyBoard, play
   let enemyDealt
   let playerRolls
   let enemyRolls
+  let playerChosenRoll
+  let playerChosenRollIndex
+  let enemyChosenRoll
+  let enemyChosenRollIndex
 
   if (preview.rps === 'neutral') {
     const playerRoll = roll(playerRange)
@@ -124,6 +143,10 @@ export function resolvePair(playerCard, enemyCard, playerBoard, enemyBoard, play
 
     playerRolls = [playerRoll]
     enemyRolls = [enemyRoll]
+    playerChosenRoll = playerRoll
+    playerChosenRollIndex = 0
+    enemyChosenRoll = enemyRoll
+    enemyChosenRollIndex = 0
     playerDealt = applyDefenderRole(enemyCard, sharedDamage)
     enemyDealt = applyDefenderRole(playerCard, sharedDamage)
   } else {
@@ -131,16 +154,20 @@ export function resolvePair(playerCard, enemyCard, playerBoard, enemyBoard, play
 
     const playerRoll1 = roll(playerRange)
     const playerRoll2 = playerWins ? roll(playerRange) : null
-    const playerRollResult = playerWins ? Math.max(playerRoll1, playerRoll2) : playerRoll1
     playerRolls = playerWins ? [playerRoll1, playerRoll2] : [playerRoll1]
+    const playerSelection = pickHighestRoll(playerRolls)
+    playerChosenRoll = playerSelection.chosenRoll
+    playerChosenRollIndex = playerSelection.chosenRollIndex
 
     const enemyRoll1 = roll(enemyRange)
     const enemyRoll2 = playerWins ? null : roll(enemyRange)
-    const enemyRollResult = playerWins ? enemyRoll1 : Math.max(enemyRoll1, enemyRoll2)
     enemyRolls = playerWins ? [enemyRoll1] : [enemyRoll1, enemyRoll2]
+    const enemySelection = pickHighestRoll(enemyRolls)
+    enemyChosenRoll = enemySelection.chosenRoll
+    enemyChosenRollIndex = enemySelection.chosenRollIndex
 
-    playerDealt = applyDefenderRole(enemyCard, applyAttackerRole(playerCard, playerRollResult))
-    enemyDealt = applyDefenderRole(playerCard, applyAttackerRole(enemyCard, enemyRollResult))
+    playerDealt = applyDefenderRole(enemyCard, applyAttackerRole(playerCard, playerChosenRoll))
+    enemyDealt = applyDefenderRole(playerCard, applyAttackerRole(enemyCard, enemyChosenRoll))
   }
 
   const playerValueBefore = playerCard.value
@@ -154,6 +181,8 @@ export function resolvePair(playerCard, enemyCard, playerBoard, enemyBoard, play
     label: preview.label,
     player: {
       rolls: playerRolls,
+      chosenRoll: playerChosenRoll,
+      chosenRollIndex: playerChosenRollIndex,
       range: playerRange,
       supportBonus: preview.player.supportBonus,
       rollMode: preview.player.rollMode,
@@ -164,6 +193,8 @@ export function resolvePair(playerCard, enemyCard, playerBoard, enemyBoard, play
     },
     enemy: {
       rolls: enemyRolls,
+      chosenRoll: enemyChosenRoll,
+      chosenRollIndex: enemyChosenRollIndex,
       range: enemyRange,
       supportBonus: preview.enemy.supportBonus,
       rollMode: preview.enemy.rollMode,

@@ -1,5 +1,5 @@
 import { GAME } from '../config/game.config.js'
-import { createDeck } from './cards-data.js'
+import { createPlayerDeck } from './cards-data.js'
 import { getCombatPreview, resolvePair } from './combat.js'
 import { createEnemyDeck, enemyRefillBoard, shuffleDeck } from './enemy.js'
 
@@ -35,7 +35,7 @@ function countOpenPlayerSlots() {
 }
 
 function createRewardChoices(count = GAME.SLOT_COUNT) {
-  return shuffleDeck(createDeck()).slice(0, count)
+  return shuffleDeck(createPlayerDeck()).slice(0, count)
 }
 
 export function getResolutionOrder() {
@@ -101,7 +101,7 @@ function buildCombatStep(slotIndex) {
 }
 
 export function initRun() {
-  gameState.playerDeck = shuffleDeck(createDeck())
+  gameState.playerDeck = shuffleDeck(createPlayerDeck())
   gameState.playerHand = []
   gameState.playerCemetery = []
   gameState.playerBoard = Array(GAME.SLOT_COUNT).fill(null)
@@ -204,6 +204,8 @@ export function resolveCombatStep(slotIndex) {
       id: player.id,
       name: player.name,
       rolls: result.player.rolls,
+      chosenRoll: result.player.chosenRoll,
+      chosenRollIndex: result.player.chosenRollIndex,
       range: result.player.range,
       supportBonus: result.player.supportBonus,
       rollMode: result.player.rollMode,
@@ -216,6 +218,8 @@ export function resolveCombatStep(slotIndex) {
       id: enemy.id,
       name: enemy.name,
       rolls: result.enemy.rolls,
+      chosenRoll: result.enemy.chosenRoll,
+      chosenRollIndex: result.enemy.chosenRollIndex,
       range: result.enemy.range,
       supportBonus: result.enemy.supportBonus,
       rollMode: result.enemy.rollMode,

@@ -197,6 +197,7 @@ with sync_playwright() as playwright:
     assert page.locator("#btn-resolve").inner_text() == "Continue"
     assert page.locator("#btn-resolve").is_enabled() is True
     assert page.locator(".card__resolution-note").count() == 2
+    assert page.locator(".card__value-previous").count() == 2
     assert page.locator(".slot--resolving").count() == 2
 
     page.screenshot(path=str(OUTPUT_DIR / "after-first-fight.png"), full_page=True)

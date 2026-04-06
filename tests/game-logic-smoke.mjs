@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 
 import { GAME } from '../config/game.config.js'
 import { getSupportBonus } from '../js/buffs.js'
-import { createDeck } from '../js/cards-data.js'
+import { createPlayerDeck } from '../js/cards-data.js'
 import { getCombatPreview, getRpsResult, resolvePair } from '../js/combat.js'
 import { shuffleDeck } from '../js/enemy.js'
 import {
@@ -48,7 +48,7 @@ function withRandomSequence(sequence, fn) {
   }
 }
 
-assert.equal(createDeck().length, 12)
+assert.equal(createPlayerDeck().length, 12)
 assert.equal(getRpsResult({ rps: 'rock' }, { rps: 'scissors' }), 'advantage')
 assert.equal(getRpsResult({ rps: 'rock' }, { rps: 'paper' }), 'disadvantage')
 assert.equal(getRpsResult({ rps: 'paper' }, { rps: 'paper' }), 'neutral')
@@ -81,7 +81,11 @@ withRandomSequence([0.7, 0.1, 0.3], () => {
 
   assert.equal(result.rps, 'advantage')
   assert.deepEqual(result.player.rolls, [4, 1])
+  assert.equal(result.player.chosenRoll, 4)
+  assert.equal(result.player.chosenRollIndex, 0)
   assert.deepEqual(result.enemy.rolls, [1])
+  assert.equal(result.enemy.chosenRoll, 1)
+  assert.equal(result.enemy.chosenRollIndex, 0)
   assert.equal(result.player.dealt, 4)
   assert.equal(result.enemy.dealt, 1)
   assert.equal(player.value, 4)
@@ -95,7 +99,11 @@ withRandomSequence([0.8, 0.3], () => {
 
   assert.equal(result.rps, 'neutral')
   assert.deepEqual(result.player.rolls, [5])
+  assert.equal(result.player.chosenRoll, 5)
+  assert.equal(result.player.chosenRollIndex, 0)
   assert.deepEqual(result.enemy.rolls, [2])
+  assert.equal(result.enemy.chosenRoll, 2)
+  assert.equal(result.enemy.chosenRollIndex, 0)
   assert.equal(result.player.dealt, 2)
   assert.equal(result.enemy.dealt, 1)
   assert.equal(player.value, 4)
@@ -104,7 +112,7 @@ withRandomSequence([0.8, 0.3], () => {
 
 const originalMathRandom = Math.random
 Math.random = () => 0
-const expectedShuffledPlayerDeck = shuffleDeck(createDeck()).map((card) => card.id)
+const expectedShuffledPlayerDeck = shuffleDeck(createPlayerDeck()).map((card) => card.id)
 initRun()
 Math.random = originalMathRandom
 
