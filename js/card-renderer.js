@@ -1,9 +1,60 @@
 import { CARD } from '../config/card.config.js'
 
-const RPS_ICON = { pressure: '🔥', appeal: '🎭', positioning: '🧭' }
+const RPS_TYPE_META = {
+  pressure:    { label: 'Pressure',    color: '#792929' },
+  appeal:      { label: 'Appeal',      color: '#797929' },
+  positioning: { label: 'Positioning', color: '#295679' },
+}
+
+const RPS_BEATS = {
+  pressure:    'positioning',
+  positioning: 'appeal',
+  appeal:      'pressure',
+}
+
+const RPS_LOSES_TO = {
+  pressure:    'appeal',
+  positioning: 'pressure',
+  appeal:      'positioning',
+}
 
 function titleCase(value = '') {
   return value ? `${value[0].toUpperCase()}${value.slice(1)}` : ''
+}
+
+function getRpsTypeMeta(rps = '') {
+  return RPS_TYPE_META[rps] ?? { label: titleCase(rps), color: '#3f3f3f' }
+}
+
+function createCardHeader(card) {
+  const typeMeta = getRpsTypeMeta(card.rps)
+  const beatenMeta = RPS_BEATS[card.rps] ? getRpsTypeMeta(RPS_BEATS[card.rps]) : null
+
+  const titleBar = document.createElement('div')
+  titleBar.className = 'card__title-bar'
+  titleBar.textContent = card.name ?? ''
+
+  const typeRow = document.createElement('div')
+  typeRow.className = 'card__type-row'
+
+  const typeBadge = document.createElement('div')
+  typeBadge.className = 'card__type-badge'
+  typeBadge.textContent = typeMeta.label
+
+  const beatsEl = document.createElement('div')
+  beatsEl.className = 'card__type-beats'
+  if (beatenMeta) {
+    beatsEl.textContent = beatenMeta.label
+    beatsEl.style.setProperty('--beaten-rps-color', beatenMeta.color)
+  }
+
+  typeRow.appendChild(typeBadge)
+  typeRow.appendChild(beatsEl)
+
+  const fragment = document.createDocumentFragment()
+  fragment.appendChild(titleBar)
+  fragment.appendChild(typeRow)
+  return fragment
 }
 
 function getRoleDescription(role) {
@@ -41,7 +92,9 @@ function createCardTooltip(card, supportBonus, effectiveRange, combatProjection 
 
   const list = document.createElement('ul')
   list.className = 'card__tooltip-list'
-  list.appendChild(createTooltipRow(`Role: ${titleCase(card.role)} · ${getRoleDescription(card.role)}`))
+  if (card.role && card.role !== 'none') {
+    list.appendChild(createTooltipRow(`Role: ${titleCase(card.role)} · ${getRoleDescription(card.role)}`))
+  }
   list.appendChild(createTooltipRow(`Roll range: 1-${effectiveRange}`))
 
   if (supportBonus > 0) {
@@ -191,16 +244,18 @@ export function createCardEl(card, isEnemy = false) {
   el.style.padding = `${CARD.padding}px`
   el.style.boxShadow = CARD.shadow
   el.style.zIndex = 1
+  el.style.setProperty('--card-rps-color', getRpsTypeMeta(card.rps).color)
+
+  const cardHeader = createCardHeader(card)
 
   const top = document.createElement('div')
   top.className = 'card__top'
 
-  const header = document.createElement('div')
-  header.className = 'card__header'
+  const role = document.createElement('div')
+  role.className = `card__role card__role--${card.role ?? ''}`
+  role.textContent = card.role && card.role !== 'none' ? card.role : ''
 
-  const name = document.createElement('div')
-  name.className = 'card__name'
-  name.textContent = card.name ?? ''
+  top.appendChild(role)
 
   const statsCluster = document.createElement('div')
   statsCluster.className = 'card__stats-cluster'
@@ -214,22 +269,9 @@ export function createCardEl(card, isEnemy = false) {
   stats.appendChild(value)
   statsCluster.appendChild(stats)
 
-  const role = document.createElement('div')
-  role.className = `card__role card__role--${card.role ?? ''}`
-  role.textContent = card.role ?? ''
-
-  header.appendChild(name)
-  header.appendChild(statsCluster)
-  top.appendChild(header)
-  top.appendChild(role)
-
   const mid = document.createElement('div')
   mid.className = 'card__mid'
-
-  const rpsIcon = document.createElement('div')
-  rpsIcon.className = 'card__rps-icon'
-  rpsIcon.textContent = RPS_ICON[card.rps] ?? '?'
-  mid.appendChild(rpsIcon)
+  mid.appendChild(statsCluster)
 
   const bot = document.createElement('div')
   bot.className = 'card__bot'
@@ -239,9 +281,16 @@ export function createCardEl(card, isEnemy = false) {
   effect.textContent = getRoleDescription(card.role)
   bot.appendChild(effect)
 
+  const loserType = RPS_LOSES_TO[card.rps]
+  const bottomBar = document.createElement('div')
+  bottomBar.className = 'card__bottom-bar'
+  if (loserType) bottomBar.style.backgroundColor = getRpsTypeMeta(loserType).color
+
+  el.appendChild(cardHeader)
   el.appendChild(top)
   el.appendChild(mid)
   el.appendChild(bot)
+  el.appendChild(bottomBar)
   updateCardPresentation(el, card)
 
   return el
