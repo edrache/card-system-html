@@ -223,25 +223,39 @@ function updateCombatBadge(cardEl, combatProjection = null) {
 }
 
 export function updateCardPresentation(cardEl, card, context = null) {
-  let normalizedContext = { combatProjection: null, previousValue: null }
+  let normalizedContext = {
+    combatProjection: null,
+    previousValue: null,
+    valueBonuses: [],
+    valuePenalties: [],
+    scoreDelta: null,
+  }
+
   if (
     context &&
-    ('combatProjection' in context || 'supportBonus' in context || 'effectiveRange' in context || 'previousValue' in context)
+    ('combatProjection' in context || 'valueBonuses' in context || 'effectiveRange' in context || 'previousValue' in context || 'scoreDelta' in context)
   ) {
-    normalizedContext = context
+    normalizedContext = { ...normalizedContext, ...context }
   } else if (context && ('label' in context || 'rps' in context)) {
-    normalizedContext = { combatProjection: context }
+    normalizedContext = { ...normalizedContext, combatProjection: context }
   }
+
   const combatProjection = normalizedContext.combatProjection ?? null
-  const supportBonus = normalizedContext.supportBonus ?? combatProjection?.supportBonus ?? 0
-  const effectiveRange = normalizedContext.effectiveRange ?? combatProjection?.effectiveRange ?? (card.value + supportBonus)
+  const valueBonuses = normalizedContext.valueBonuses ?? []
+  const valuePenalties = normalizedContext.valuePenalties ?? []
+  const scoreDelta = normalizedContext.scoreDelta ?? null
+  const effectiveRange = normalizedContext.effectiveRange ?? combatProjection?.effectiveRange ?? (card.value + valueBonuses.reduce((a, b) => a + b, 0))
   const previousValue = normalizedContext.previousValue ?? null
 
-  updateStatsCluster(cardEl, card, supportBonus)
+  const valueEl = cardEl.querySelector('.card__value')
+  if (valueEl) valueEl.textContent = `${card.value}`
+
+  updateStatsCluster(cardEl, valueBonuses, valuePenalties)
+  updateScoreDelta(cardEl, scoreDelta)
   updatePreviousValueBadge(cardEl, previousValue)
 
   const oldTooltip = cardEl.querySelector('.card__tooltip')
-  const newTooltip = createCardTooltip(card, supportBonus, effectiveRange, combatProjection)
+  const newTooltip = createCardTooltip(card, valueBonuses.reduce((a, b) => a + b, 0), effectiveRange, combatProjection)
   if (oldTooltip) {
     oldTooltip.replaceWith(newTooltip)
   } else {
