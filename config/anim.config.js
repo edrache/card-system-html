@@ -17,4 +17,5 @@ export const ANIM = {
   resolvePauseDuration: 0.22, // short settle time before Continue becomes active
   resolveTiltAngle: 30,       // destroyed cards lean to make the loss readable
   cleanupDuration: 0.55,      // board-to-hand / refill transition duration
+  flavorTypeSpeed: 20,        // ms per character for slot flavor text typing animation
 }

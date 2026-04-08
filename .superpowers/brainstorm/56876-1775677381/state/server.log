@@ -1,0 +1,5 @@
+{"type":"server-started","port":52064,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52064","screen_dir":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/content","state_dir":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/state"}
+{"type":"screen-added","file":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/content/layout-concept.html"}
+{"source":"user-event","type":"click","text":"7\n        \n          +2\n          −1\n        \n        \n          Score +3\n          Score −2\n        \n      \n      A — kółka nakładają się,wynik osobno poniżej","choice":"a","id":null,"timestamp":1775677478914}
+{"type":"screen-added","file":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/content/waiting-1.html"}
+{"type":"screen-added","file":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/content/design-final.html"}

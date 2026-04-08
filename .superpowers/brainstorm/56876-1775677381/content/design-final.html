@@ -1,0 +1,289 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Bricolage+Grotesque:wght@700&display=swap');
+
+  .scene {
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 24px 0 32px;
+  }
+
+  .card-demo {
+    background: #f0ebe3;
+    border-radius: 6px;
+    padding: 8px;
+    width: 96px;
+    height: 140px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .card-demo__top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+  }
+
+  .card-demo__spacer {
+    flex: 1;
+  }
+
+  /* Stats cluster */
+  .stats-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  /* Main value circle */
+  .val-main {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #792929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #e8e8e8;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Delta circles – stack below, overlapping */
+  .delta-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    letter-spacing: 0.03em;
+    margin-top: -9px; /* overlap into circle above */
+    position: relative;
+  }
+
+  .delta-circle--pos {
+    background: oklch(88% 0.10 152 / 0.97);
+    border: 1.5px solid oklch(58% 0.14 152 / 0.45);
+    color: oklch(22% 0.14 152);
+  }
+
+  .delta-circle--neg {
+    background: oklch(88% 0.10 28 / 0.97);
+    border: 1.5px solid oklch(58% 0.14 28 / 0.45);
+    color: oklch(24% 0.14 22);
+  }
+
+  /* z-index: each circle goes under the one above */
+  .delta-circle:nth-child(1) { z-index: 9; }
+  .delta-circle:nth-child(2) { z-index: 8; }
+  .delta-circle:nth-child(3) { z-index: 7; }
+
+  /* Score delta – below everything, separated */
+  .score-delta {
+    margin-top: 6px;
+    align-self: flex-end;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 7.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .score-delta--pos {
+    background: oklch(32% 0.10 152 / 0.85);
+    color: oklch(84% 0.12 152);
+  }
+
+  .score-delta--neg {
+    background: oklch(32% 0.10 22 / 0.85);
+    color: oklch(86% 0.10 28);
+  }
+
+  /* Card bottom filler */
+  .card-demo__bot {
+    flex: 1;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  .card-demo__flavor {
+    font-size: 6px;
+    color: rgba(0,0,0,0.35);
+    font-style: italic;
+    line-height: 1.3;
+  }
+
+  /* Labels */
+  .demo-label {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #aaa;
+    font-family: sans-serif;
+    line-height: 1.5;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #ccc;
+    font-family: sans-serif;
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .legend-dot--pos { background: oklch(88% 0.10 152); border: 1px solid oklch(58% 0.14 152 / 0.5); }
+  .legend-dot--neg { background: oklch(88% 0.10 28); border: 1px solid oklch(58% 0.14 28 / 0.5); }
+  .legend-sq--score { width: 12px; height: 8px; border-radius: 2px; background: oklch(32% 0.10 152 / 0.85); }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 28px 0 16px;
+  }
+
+  .structure-label {
+    font-size: 10px;
+    color: #666;
+    font-family: monospace;
+    text-align: right;
+    position: absolute;
+    right: -120px;
+    white-space: nowrap;
+  }
+
+  .arrow {
+    position: absolute;
+    right: -8px;
+    color: #444;
+    font-size: 10px;
+  }
+</style>
+
+<h2>Design — układ wskaźników na karcie</h2>
+<p class="subtitle">Trzy warianty obecności wskaźników</p>
+
+<div class="scene">
+
+  <!-- State 1: no bonuses -->
+  <div>
+    <div class="card-demo">
+      <div class="card-demo__top">
+        <div class="card-demo__spacer"></div>
+        <div class="stats-cluster">
+          <div class="val-main">7</div>
+        </div>
+      </div>
+      <div class="card-demo__bot">
+        <div class="card-demo__flavor">Flavor text here for the card.</div>
+      </div>
+    </div>
+    <div class="demo-label">Stan bazowy<br><small>bez modyfikatorów</small></div>
+  </div>
+
+  <!-- State 2: support bonus only -->
+  <div>
+    <div class="card-demo">
+      <div class="card-demo__top">
+        <div class="card-demo__spacer"></div>
+        <div class="stats-cluster">
+          <div class="val-main">7</div>
+          <div class="delta-circle delta-circle--pos">+1</div>
+          <div class="delta-circle delta-circle--pos">+1</div>
+        </div>
+      </div>
+      <div class="card-demo__bot">
+        <div class="card-demo__flavor">Flavor text here for the card.</div>
+      </div>
+    </div>
+    <div class="demo-label">Dwa bonusy support<br><small>+1, +1 → dwa zielone kółka</small></div>
+  </div>
+
+  <!-- State 3: bonuses + penalty -->
+  <div>
+    <div class="card-demo">
+      <div class="card-demo__top">
+        <div class="card-demo__spacer"></div>
+        <div class="stats-cluster">
+          <div class="val-main">7</div>
+          <div class="delta-circle delta-circle--pos">+1</div>
+          <div class="delta-circle delta-circle--neg">−1</div>
+        </div>
+      </div>
+      <div class="card-demo__bot">
+        <div class="card-demo__flavor">Flavor text here for the card.</div>
+      </div>
+    </div>
+    <div class="demo-label">Bonus + kara<br><small>zielone, potem czerwone</small></div>
+  </div>
+
+  <!-- State 4: score delta + bonuses -->
+  <div>
+    <div class="card-demo">
+      <div class="card-demo__top">
+        <div class="card-demo__spacer"></div>
+        <div class="stats-cluster">
+          <div class="val-main">7</div>
+          <div class="delta-circle delta-circle--pos">+1</div>
+          <div class="score-delta score-delta--pos">ATK +1</div>
+        </div>
+      </div>
+      <div class="card-demo__bot">
+        <div class="card-demo__flavor">Flavor text here for the card.</div>
+      </div>
+    </div>
+    <div class="demo-label">Bonus + wynik walki<br><small>kółko + wynik osobno</small></div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot legend-dot--pos"></div> Bonus wartości (zielone kółko)</div>
+  <div class="legend-item"><div class="legend-dot legend-dot--neg"></div> Kara wartości (czerwone kółko)</div>
+  <div class="legend-item"><div class="legend-sq--score"></div> Zmiana wyniku (pill poniżej)</div>
+</div>
+
+<hr class="divider">
+
+<h3>Struktura danych (nowe API)</h3>
+<pre style="background:#111;padding:14px;border-radius:6px;font-size:11px;color:#b0c4de;overflow-x:auto;">updateCardPresentation(cardEl, card, {
+  valueBonuses:   [1, 1],   // zielone kółka (każdy bonus osobno)
+  valuePenalties: [1],      // czerwone kółka (każda kara osobno)
+  scoreDelta:     1,        // pill poniżej (null = ukryty)
+  effectiveRange: 9,
+  previousValue:  null,
+  combatProjection: null,
+})</pre>
+
+<p class="subtitle" style="margin-top:8px;">
+  Call sites: <code>supportBonus: N</code> → <code>valueBonuses: [N]</code>
+</p>

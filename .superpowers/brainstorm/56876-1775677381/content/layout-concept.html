@@ -1,0 +1,221 @@
+<style>
+  .demo-area {
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 32px 0;
+    flex-wrap: wrap;
+  }
+
+  .card-mock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 20px 16px 16px;
+    min-width: 120px;
+  }
+
+  /* Value circle (main) */
+  .val-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #792929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bricolage Grotesque', 'Arial Black', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #e8e8e8;
+    position: relative;
+    z-index: 3;
+  }
+
+  /* Delta circles – overlapping below value */
+  .delta-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: -10px; /* overlap into value circle */
+    gap: -8px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .delta-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    position: relative;
+    margin-top: -8px;
+  }
+
+  .delta-circle:first-child {
+    margin-top: 0;
+  }
+
+  .delta-circle--pos {
+    background: oklch(88% 0.10 152 / 0.95);
+    border: 1.5px solid oklch(60% 0.14 152 / 0.5);
+    color: oklch(24% 0.14 152);
+    z-index: 2;
+  }
+
+  .delta-circle--neg {
+    background: oklch(88% 0.10 28 / 0.95);
+    border: 1.5px solid oklch(60% 0.14 28 / 0.5);
+    color: oklch(26% 0.14 22);
+    z-index: 1;
+  }
+
+  /* Score changes – separate, below everything */
+  .score-changes {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid oklch(60% 0.02 265 / 0.2);
+    width: 100%;
+  }
+
+  .score-pill {
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .score-pill--pos {
+    background: oklch(30% 0.10 152 / 0.8);
+    color: oklch(82% 0.12 152);
+  }
+
+  .score-pill--neg {
+    background: oklch(30% 0.10 22 / 0.8);
+    color: oklch(84% 0.10 28);
+  }
+
+  .card-label {
+    font-size: 11px;
+    color: #888;
+    text-align: center;
+    margin-top: 10px;
+    width: 100%;
+    font-family: sans-serif;
+  }
+
+  .annotation {
+    font-size: 11px;
+    color: #aaa;
+    margin: 4px 0;
+    font-family: sans-serif;
+  }
+
+  .bracket {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .bracket-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin-top: 8px;
+  }
+</style>
+
+<h2>Czy tak rozumiem układ?</h2>
+<p class="subtitle">Kliknij opcję która najlepiej pasuje do Twojej wizji</p>
+
+<div class="demo-area">
+
+  <!-- Option A: circles stack tightly, overlapping value -->
+  <div>
+    <div class="card mock" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer; outline: 2px solid transparent; border-radius: 10px; transition: outline 0.15s;">
+      <div class="card-mock">
+        <div class="val-circle">7</div>
+        <div class="delta-stack">
+          <div class="delta-circle delta-circle--pos">+2</div>
+          <div class="delta-circle delta-circle--neg">−1</div>
+        </div>
+        <div class="score-changes">
+          <div class="score-pill score-pill--pos">Score +3</div>
+          <div class="score-pill score-pill--neg">Score −2</div>
+        </div>
+      </div>
+      <div class="card-label">A — kółka nakładają się,<br>wynik osobno poniżej</div>
+    </div>
+  </div>
+
+  <!-- Option B: circles side by side (horizontal) under value -->
+  <div>
+    <div class="card mock" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer; outline: 2px solid transparent; border-radius: 10px; transition: outline 0.15s;">
+      <div class="card-mock" style="align-items: flex-end;">
+        <div class="val-circle">7</div>
+        <div style="display: flex; gap: 3px; margin-top: -8px; z-index: 2; position: relative;">
+          <div class="delta-circle delta-circle--pos" style="margin-top:0;">+2</div>
+          <div class="delta-circle delta-circle--neg" style="margin-top:0;">−1</div>
+        </div>
+        <div class="score-changes">
+          <div class="score-pill score-pill--pos">Score +3</div>
+          <div class="score-pill score-pill--neg">Score −2</div>
+        </div>
+      </div>
+      <div class="card-label">B — kółka obok siebie,<br>wynik osobno poniżej</div>
+    </div>
+  </div>
+
+  <!-- Option C: different interpretation - all separate rows -->
+  <div>
+    <div class="card mock" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer; outline: 2px solid transparent; border-radius: 10px; transition: outline 0.15s;">
+      <div class="card-mock" style="align-items: flex-end;">
+        <div class="val-circle">7</div>
+        <div style="margin-top: 5px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+          <div style="display: inline-flex; align-items: center; gap: 3px;">
+            <div class="delta-circle delta-circle--pos" style="margin-top:0; width:22px; height:22px; font-size:8px;">+2</div>
+            <div class="delta-circle delta-circle--neg" style="margin-top:0; width:22px; height:22px; font-size:8px;">−1</div>
+          </div>
+        </div>
+        <div class="score-changes" style="margin-top: 4px;">
+          <div class="score-pill score-pill--pos">Score +3</div>
+          <div class="score-pill score-pill--neg">Score −2</div>
+        </div>
+      </div>
+      <div class="card-label">C — małe kółka razem,<br>wynik osobno poniżej</div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 0;">
+  Górne kółka = zmiany wartości karty (zielone +, czerwone −)<br>
+  Dolne pilulki = zmiany ostatecznego wyniku
+</p>
+
+<script>
+  document.querySelectorAll('.card.mock').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.card.mock').forEach(c => c.style.outline = '2px solid transparent');
+      card.style.outline = '2px solid #7c6af5';
+    });
+  });
+</script>
