@@ -41,8 +41,8 @@ const ROLE_TEXT = {
 // ── DOM refs tracked by slot index ───────────────────────────────────────────
 
 const playerSlotEls = []  // playerSlotEls[i] = player slot element at index i
-const enemySlotEls  = []  // enemySlotEls[i]  = enemy slot element at index i
-const enemyCardEls  = []  // enemyCardEls[i]  = enemy card element at index i (null if empty)
+const enemySlotEls = []  // enemySlotEls[i]  = enemy slot element at index i
+const enemyCardEls = []  // enemyCardEls[i]  = enemy card element at index i (null if empty)
 const columnMarkerEls = [] // columnMarkerEls[i] = fight marker between enemy and player slot
 const combatFlowState = {
   active: false,
@@ -77,7 +77,7 @@ function getRpsProjection(owner, slotIndex) {
       rps: preview.rps,
       self: preview.player,
       opponent: preview.enemy,
-      supportBonus: preview.player.supportBonus,
+      valueBonuses: preview.player.supportBonus > 0 ? [preview.player.supportBonus] : [],
       effectiveRange: preview.player.range,
     }
   }
@@ -96,7 +96,7 @@ function getRpsProjection(owner, slotIndex) {
     rps: preview.rps,
     self: preview.player,
     opponent: preview.enemy,
-    supportBonus: preview.player.supportBonus,
+    valueBonuses: preview.player.supportBonus > 0 ? [preview.player.supportBonus] : [],
     effectiveRange: preview.player.range,
   }
 }
@@ -210,7 +210,7 @@ function refreshVisibleCards() {
         : null
     updateCardPresentation(cardEl, card, {
       combatProjection,
-      supportBonus: combatProjection?.supportBonus ?? 0,
+      valueBonuses: combatProjection?.valueBonuses ?? [],
       effectiveRange: combatProjection?.effectiveRange ?? card.value,
     })
   })
@@ -221,6 +221,41 @@ function refreshVisibleCards() {
   } else {
     clearPlacementOrderMarkers()
   }
+}
+
+// ── Slot flavor text ─────────────────────────────────────────────────────────
+
+function showSlotFlavor(slotEl, flavor) {
+  hideSlotFlavor(slotEl)
+  if (!flavor) return
+
+  const board = document.getElementById('board')
+  const slotLeft = parseFloat(slotEl.style.left)
+  const slotTop = parseFloat(slotEl.style.top)
+
+  const el = document.createElement('div')
+  el.className = 'slot-flavor'
+  el.dataset.slotId = slotEl.dataset.id
+
+  const rotation = Math.round(Math.random() * 20 - 10)
+  el.style.left = (slotLeft + CARD.width / 2) + 'px'
+  el.style.top = (slotTop + CARD.height + Math.round(Math.random() * 100) + 10) + 'px'
+  el.style.transform = `translateX(-50%) rotate(${rotation}deg)`
+
+  board.appendChild(el)
+
+  let i = 0
+  const timer = setInterval(() => {
+    el.textContent = flavor.slice(0, i + 1)
+    i++
+    if (i >= flavor.length) clearInterval(timer)
+  }, ANIM.flavorTypeSpeed)
+}
+
+function hideSlotFlavor(slotEl) {
+  const board = document.getElementById('board')
+  board.querySelectorAll(`.slot-flavor[data-slot-id="${slotEl.dataset.id}"]`)
+    .forEach(el => el.remove())
 }
 
 export function createSlotEl(slot, extraClass) {
@@ -261,26 +296,29 @@ function renderHand() {
   const container = document.getElementById('cards')
   container.innerHTML = ''
 
-  const handY     = window.innerHeight - CARD.height - 50
+  const handY = window.innerHeight - CARD.height - 50
   const positions = calcSlotRow(gameState.playerHand.length, handY)
 
   gameState.playerHand.forEach((card, i) => {
     const el = createCardEl(card)
     el.style.left = positions[i].x + 'px'
-    el.style.top  = positions[i].y + 'px'
+    el.style.top = positions[i].y + 'px'
 
     initDrag(el, {
       onSnap(slotEl, cardEl) {
-        const slotIndex  = slotIdToIndex(slotEl.dataset.id)
+        const slotIndex = slotIdToIndex(slotEl.dataset.id)
         placeCard(cardEl.dataset.id, slotIndex)
         refreshVisibleCards()
         syncResolveButton()
+        const card = findPlayerCardById(cardEl.dataset.id)
+        showSlotFlavor(slotEl, card?.flavor ?? null)
       },
       onUnsnap(slotEl, cardEl) {
         const slotIndex = slotIdToIndex(slotEl.dataset.id)
         unplaceCard(slotIndex)
         refreshVisibleCards()
         syncResolveButton()
+        hideSlotFlavor(slotEl)
       },
       getSlotHighlightClass(slotEl, cardEl) {
         const slotIndex = slotIdToIndex(slotEl.dataset.id)
@@ -300,7 +338,7 @@ function renderEnemyBoard() {
   container.innerHTML = ''
   enemyCardEls.fill(null)
 
-  const count    = LAYOUT.enemySlots.length
+  const count = LAYOUT.enemySlots.length
   const enemyRowY = Math.round(window.innerHeight * LAYOUT.enemySlotRowY)
   const positions = calcSlotRow(count, enemyRowY)
 
@@ -311,8 +349,8 @@ function renderEnemyBoard() {
     }
     const el = createCardEl(card, true /* isEnemy */)
     el.dataset.slotId = `enemy-slot-${i}`
-    el.style.left   = positions[i].x + 'px'
-    el.style.top    = positions[i].y + 'px'
+    el.style.left = positions[i].x + 'px'
+    el.style.top = positions[i].y + 'px'
     el.style.cursor = 'default'
     container.appendChild(el)
     enemyCardEls[i] = el
@@ -969,11 +1007,11 @@ function init() {
   const board = document.getElementById('board')
   board.style.background = LAYOUT.boardBg
 
-  const count      = LAYOUT.slots.length
-  const enemyRowY  = Math.round(window.innerHeight * LAYOUT.enemySlotRowY)
+  const count = LAYOUT.slots.length
+  const enemyRowY = Math.round(window.innerHeight * LAYOUT.enemySlotRowY)
   const playerRowY = Math.round(window.innerHeight * LAYOUT.playerSlotRowY)
 
-  const enemyPositions  = calcSlotRow(count, enemyRowY)
+  const enemyPositions = calcSlotRow(count, enemyRowY)
   const playerPositions = calcSlotRow(count, playerRowY)
 
   // Render enemy slots — store refs
