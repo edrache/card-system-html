@@ -1,9 +1,9 @@
 import { CARD } from '../config/card.config.js'
 
 const RPS_TYPE_META = {
-  pressure:    { label: 'Pressure',    color: '#792929' },
-  appeal:      { label: 'Appeal',      color: '#797929' },
-  positioning: { label: 'Positioning', color: '#295679' },
+  pressure:    { label: 'Pressure',    color: '#792929', emoji: '🔥' },
+  appeal:      { label: 'Appeal',      color: '#797929', emoji: '✨' },
+  positioning: { label: 'Positioning', color: '#295679', emoji: '🎯' },
 }
 
 const RPS_BEATS = {
@@ -32,7 +32,17 @@ function createCardHeader(card) {
 
   const titleBar = document.createElement('div')
   titleBar.className = 'card__title-bar'
-  titleBar.textContent = card.name ?? ''
+
+  const titleName = document.createElement('span')
+  titleName.textContent = card.name ?? ''
+  titleBar.appendChild(titleName)
+
+  if (typeMeta.emoji) {
+    const emojiEl = document.createElement('span')
+    emojiEl.className = 'card__title-emoji'
+    emojiEl.textContent = typeMeta.emoji
+    titleBar.appendChild(emojiEl)
+  }
 
   const typeRow = document.createElement('div')
   typeRow.className = 'card__type-row'
@@ -132,25 +142,43 @@ function createCardTooltip(card, supportBonus, effectiveRange, combatProjection 
   return tooltip
 }
 
-function updateStatsCluster(cardEl, card, supportBonus) {
-  const valueEl = cardEl.querySelector('.card__value')
-  const bonusEl = cardEl.querySelector('.card__value-delta')
-  if (!valueEl) return
+function updateStatsCluster(cardEl, valueBonuses, valuePenalties) {
+  const cluster = cardEl.querySelector('.card__stats-cluster')
+  if (!cluster) return
 
-  valueEl.textContent = `${card.value}`
+  // Remove existing bonus/penalty circles
+  cluster.querySelectorAll('.card__value-bonus, .card__value-penalty').forEach(el => el.remove())
 
-  if (supportBonus > 0) {
-    if (bonusEl) {
-      bonusEl.textContent = `R+${supportBonus}`
-    } else {
-      const delta = document.createElement('div')
-      delta.className = 'card__value-delta'
-      delta.textContent = `R+${supportBonus}`
-      cardEl.querySelector('.card__stats-cluster')?.appendChild(delta)
-    }
-  } else {
-    bonusEl?.remove()
-  }
+  let zIndex = 2
+  const allDeltas = [
+    ...valueBonuses.map(amount => ({ amount, cls: 'card__value-bonus' })),
+    ...valuePenalties.map(amount => ({ amount, cls: 'card__value-penalty' })),
+  ]
+
+  allDeltas.forEach(({ amount, cls }) => {
+    const circle = document.createElement('div')
+    circle.className = cls
+    circle.textContent = cls === 'card__value-bonus' ? `+${amount}` : `−${amount}`
+    circle.style.zIndex = zIndex--
+    cluster.appendChild(circle)
+  })
+}
+
+function updateScoreDelta(cardEl, scoreDelta) {
+  const cluster = cardEl.querySelector('.card__stats-cluster')
+  if (!cluster) return
+
+  const existing = cluster.querySelector('.card__score-delta')
+  existing?.remove()
+
+  if (scoreDelta === null || scoreDelta === undefined) return
+
+  const pill = document.createElement('div')
+  pill.className = scoreDelta >= 0
+    ? 'card__score-delta card__score-delta--pos'
+    : 'card__score-delta card__score-delta--neg'
+  pill.textContent = scoreDelta >= 0 ? `+${scoreDelta}` : `${scoreDelta}`
+  cluster.appendChild(pill)
 }
 
 function updatePreviousValueBadge(cardEl, previousValue = null) {
@@ -283,8 +311,6 @@ export function createCardEl(card, isEnemy = false) {
   role.className = `card__role card__role--${card.role ?? ''}`
   role.textContent = card.role && card.role !== 'none' ? card.role : ''
 
-  top.appendChild(role)
-
   const statsCluster = document.createElement('div')
   statsCluster.className = 'card__stats-cluster'
 
@@ -297,9 +323,11 @@ export function createCardEl(card, isEnemy = false) {
   stats.appendChild(value)
   statsCluster.appendChild(stats)
 
+  top.appendChild(role)
+  top.appendChild(statsCluster)
+
   const mid = document.createElement('div')
   mid.className = 'card__mid'
-  mid.appendChild(statsCluster)
 
   const bot = document.createElement('div')
   bot.className = 'card__bot'
