@@ -25,18 +25,18 @@ const CHAPTER_TITLES = {
 }
 
 const CARD_LIBRARY = new Map([
-  ['brawler',   { id: 'brawler',   name: 'Break Will',      rps: 'pressure',    value: 5, role: 'attack'  }],
-  ['slasher',   { id: 'slasher',   name: 'Cut an Opening',  rps: 'positioning', value: 7, role: 'attack'  }],
-  ['crusher',   { id: 'crusher',   name: 'Crush Doubt',     rps: 'appeal',      value: 9, role: 'attack'  }],
-  ['lunger',    { id: 'lunger',    name: 'All-In Strike',   rps: 'pressure',    value: 3, role: 'attack'  }],
-  ['bulwark',   { id: 'bulwark',   name: 'Hold Composure',  rps: 'appeal',      value: 6, role: 'defense' }],
-  ['ironclad',  { id: 'ironclad',  name: 'Stand Unbroken',  rps: 'pressure',    value: 8, role: 'defense' }],
-  ['buckler',   { id: 'buckler',   name: 'Slip the Blow',   rps: 'positioning', value: 4, role: 'defense' }],
-  ['mentor',    { id: 'mentor',    name: 'Guide the Move',  rps: 'positioning', value: 3, role: 'support' }],
-  ['tactician', { id: 'tactician', name: 'Shape Intent',    rps: 'appeal',      value: 5, role: 'support' }],
-  ['vanguard',  { id: 'vanguard',  name: 'Lead the Charge', rps: 'pressure',    value: 7, role: 'support' }],
-  ['scout',     { id: 'scout',     name: 'Mark the Path',   rps: 'positioning', value: 4, role: 'support' }],
-  ['warden',    { id: 'warden',    name: 'Steady Hearts',   rps: 'appeal',      value: 6, role: 'support' }],
+  ['brawler',   { id: 'brawler',   name: 'Break Will',      rps: 'pressure',    value: 5, role: 'attack',  flavor: 'Relentless force leaves no room for hesitation.' }],
+  ['slasher',   { id: 'slasher',   name: 'Cut an Opening',  rps: 'positioning', value: 7, role: 'attack',  flavor: 'The right angle makes its own advantage.' }],
+  ['crusher',   { id: 'crusher',   name: 'Crush Doubt',     rps: 'appeal',      value: 9, role: 'attack',  flavor: 'Certainty spreads faster than fear.' }],
+  ['lunger',    { id: 'lunger',    name: 'All-In Strike',   rps: 'pressure',    value: 3, role: 'attack',  flavor: 'Commit hard enough and the outcome has to move.' }],
+  ['bulwark',   { id: 'bulwark',   name: 'Hold Composure',  rps: 'appeal',      value: 6, role: 'defense', flavor: 'Calm reshapes the choices around you.' }],
+  ['ironclad',  { id: 'ironclad',  name: 'Stand Unbroken',  rps: 'pressure',    value: 8, role: 'defense', flavor: 'Raw resolve turns resistance into a dead end.' }],
+  ['buckler',   { id: 'buckler',   name: 'Slip the Blow',   rps: 'positioning', value: 4, role: 'defense', flavor: 'A precise step changes danger into distance.' }],
+  ['mentor',    { id: 'mentor',    name: 'Guide the Move',  rps: 'positioning', value: 3, role: 'support', flavor: 'Preparation makes the next decision obvious.' }],
+  ['tactician', { id: 'tactician', name: 'Shape Intent',    rps: 'appeal',      value: 5, role: 'support', flavor: 'A well-placed signal bends the room your way.' }],
+  ['vanguard',  { id: 'vanguard',  name: 'Lead the Charge', rps: 'pressure',    value: 7, role: 'support', flavor: 'Momentum favors the side that acts first and hardest.' }],
+  ['scout',     { id: 'scout',     name: 'Mark the Path',   rps: 'positioning', value: 4, role: 'support', flavor: 'Control the route and you control the fight.' }],
+  ['warden',    { id: 'warden',    name: 'Steady Hearts',   rps: 'appeal',      value: 6, role: 'support', flavor: 'Shared resolve keeps the line from breaking.' }],
 ])
 
 let currentStepIndex = 0

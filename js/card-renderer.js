@@ -228,12 +228,40 @@ export function createCardEl(card, isEnemy = false) {
   el.className = isEnemy ? 'card card--enemy' : 'card'
   el.dataset.id = card.id
 
+  let tooltipTimer = null
+  let tooltipSuppressed = false
+
+  const showTooltip = () => {
+    if (el.classList.contains('card--dragging')) return
+    el.classList.add('card--tooltip-visible')
+  }
+  const hideTooltip = () => {
+    clearTimeout(tooltipTimer)
+    tooltipTimer = null
+    el.classList.remove('card--tooltip-visible')
+  }
+
   el.addEventListener('mouseenter', () => {
     el.classList.add('card--tooltip-active')
+    if (!tooltipSuppressed) {
+      tooltipTimer = setTimeout(showTooltip, CARD.tooltipDelay)
+    }
   })
 
   el.addEventListener('mouseleave', () => {
     el.classList.remove('card--tooltip-active')
+    hideTooltip()
+    tooltipSuppressed = false
+  })
+
+  el.addEventListener('card:pressed', () => {
+    hideTooltip()
+    tooltipSuppressed = true
+  })
+
+  el.addEventListener('card:dropped', () => {
+    hideTooltip()
+    tooltipSuppressed = true
   })
 
   el.style.width = `${CARD.width}px`
@@ -280,6 +308,11 @@ export function createCardEl(card, isEnemy = false) {
   effect.className = 'card__effect'
   effect.textContent = getRoleDescription(card.role)
   bot.appendChild(effect)
+
+  const flavor = document.createElement('div')
+  flavor.className = 'card__flavor'
+  flavor.textContent = card.flavor ?? ''
+  bot.appendChild(flavor)
 
   const loserType = RPS_LOSES_TO[card.rps]
   const bottomBar = document.createElement('div')

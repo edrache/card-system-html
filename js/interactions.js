@@ -173,6 +173,7 @@ export function initDrag(cardEl, callbacks = {}) {
     onPress() {
       isDragging = true
       cardEl.classList.add('card--dragging')
+      cardEl.dispatchEvent(new CustomEvent('card:pressed'))
       clearPreviewSlotState()
       if (wiggleTween) { wiggleTween.kill(); wiggleTween = null }
       gsap.set(cardEl, { rotateZ: 0 })
@@ -219,6 +220,7 @@ export function initDrag(cardEl, callbacks = {}) {
     onClick() {
       isDragging = false
       cardEl.classList.remove('card--dragging')
+      cardEl.dispatchEvent(new CustomEvent('card:dropped'))
       clearPreviewSlotState()
       gsap.to(cardEl, {
         scale: 1,
@@ -230,6 +232,7 @@ export function initDrag(cardEl, callbacks = {}) {
     onDragEnd() {
       isDragging = false
       cardEl.classList.remove('card--dragging')
+      cardEl.dispatchEvent(new CustomEvent('card:dropped'))
       clearPreviewSlotState()
       clearSlotHighlights()
       clearCardHighlights()

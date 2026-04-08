@@ -7,8 +7,8 @@ export const ANIM = {
   liftDuration: 0.55,        // duration of lift and drop animations in seconds
   liftEase: 'elastic.out',         // easing when picking up a card
   dropEase: 'power3.in',     // easing when card falls back down after a click
-  slotSnapRadius: 60,        // distance in px at which a card snaps to a slot
-  cardSnapRadius: 60,        // distance in px at which a card snaps to another card
+  slotSnapRadius: 100,        // distance in px at which a card snaps to a slot
+  cardSnapRadius: 100,        // distance in px at which a card snaps to another card
   wiggleAngle: 2,            // max rotation angle in degrees during hover wiggle
   wiggleCount: 1,            // number of back-and-forth oscillations in the wiggle
   wiggleDuration: 0.03,      // duration of a single wiggle step in seconds

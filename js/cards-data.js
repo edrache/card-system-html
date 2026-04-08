@@ -25,37 +25,37 @@ function cloneCard(def) {
  * owner: 'player'
  */
 const PLAYER_CARD_DEFINITIONS = [
-  { id: 'brawler', name: 'Break Will', rps: 'pressure', value: 5, role: 'attack', owner: 'player' },
-  { id: 'slasher', name: 'Cut an Opening', rps: 'positioning', value: 6, role: 'none', owner: 'player' },
-  { id: 'crusher', name: 'Crush Doubt', rps: 'appeal', value: 6, role: 'none', owner: 'player' },
-  { id: 'lunger', name: 'All-In Strike', rps: 'pressure', value: 3, role: 'none', owner: 'player' },
+  { id: 'brawler', name: 'Break Will', rps: 'pressure', value: 5, role: 'attack', owner: 'player', flavor: 'Relentless force leaves no room for hesitation.' },
+  { id: 'slasher', name: 'Cut an Opening', rps: 'positioning', value: 6, role: 'none', owner: 'player', flavor: 'The right angle makes its own advantage.' },
+  { id: 'crusher', name: 'Crush Doubt', rps: 'appeal', value: 6, role: 'none', owner: 'player', flavor: 'Certainty spreads faster than fear.' },
+  { id: 'lunger', name: 'All-In Strike', rps: 'pressure', value: 3, role: 'none', owner: 'player', flavor: 'Commit hard enough and the outcome has to move.' },
 
-  { id: 'bulwark', name: 'Hold Composure', rps: 'appeal', value: 6, role: 'defense', owner: 'player' },
-  { id: 'ironclad', name: 'Stand Unbroken', rps: 'pressure', value: 5, role: 'none', owner: 'player' },
-  { id: 'buckler', name: 'Slip the Blow', rps: 'positioning', value: 4, role: 'none', owner: 'player' },
+  { id: 'bulwark', name: 'Hold Composure', rps: 'appeal', value: 6, role: 'defense', owner: 'player', flavor: 'Calm reshapes the choices around you.' },
+  { id: 'ironclad', name: 'Stand Unbroken', rps: 'pressure', value: 5, role: 'none', owner: 'player', flavor: 'Raw resolve turns resistance into a dead end.' },
+  { id: 'buckler', name: 'Slip the Blow', rps: 'positioning', value: 4, role: 'none', owner: 'player', flavor: 'A precise step changes danger into distance.' },
 
-  { id: 'mentor', name: 'Guide the Move', rps: 'positioning', value: 3, role: 'none', owner: 'player' },
-  { id: 'tactician', name: 'Shape Intent', rps: 'appeal', value: 5, role: 'support', owner: 'player' },
-  { id: 'vanguard', name: 'Lead the Charge', rps: 'pressure', value: 6, role: 'none', owner: 'player' },
-  { id: 'scout', name: 'Mark the Path', rps: 'positioning', value: 4, role: 'none', owner: 'player' },
-  { id: 'warden', name: 'Steady Hearts', rps: 'appeal', value: 6, role: 'none', owner: 'player' },
+  { id: 'mentor', name: 'Guide the Move', rps: 'positioning', value: 3, role: 'none', owner: 'player', flavor: 'Preparation makes the next decision obvious.' },
+  { id: 'tactician', name: 'Shape Intent', rps: 'appeal', value: 5, role: 'support', owner: 'player', flavor: 'A well-placed signal bends the room your way.' },
+  { id: 'vanguard', name: 'Lead the Charge', rps: 'pressure', value: 6, role: 'none', owner: 'player', flavor: 'Momentum favors the side that acts first and hardest.' },
+  { id: 'scout', name: 'Mark the Path', rps: 'positioning', value: 4, role: 'none', owner: 'player', flavor: 'Control the route and you control the fight.' },
+  { id: 'warden', name: 'Steady Hearts', rps: 'appeal', value: 6, role: 'none', owner: 'player', flavor: 'Shared resolve keeps the line from breaking.' },
 ]
 
 /* const PLAYER_CARD_DEFINITIONS = [
-  { id: 'brawler',   name: 'Break Will',       rps: 'pressure',    value: 5, role: 'attack',  owner: 'player' },
-  { id: 'slasher',   name: 'Cut an Opening',   rps: 'positioning', value: 6, role: 'attack',  owner: 'player' },
-  { id: 'crusher',   name: 'Crush Doubt',      rps: 'appeal',      value: 6, role: 'attack',  owner: 'player' },
-  { id: 'lunger',    name: 'All-In Strike',    rps: 'pressure',    value: 3, role: 'attack',  owner: 'player' },
+  { id: 'brawler',   name: 'Break Will',       rps: 'pressure',    value: 5, role: 'attack',  owner: 'player', flavor: 'Relentless force leaves no room for hesitation.' },
+  { id: 'slasher',   name: 'Cut an Opening',   rps: 'positioning', value: 6, role: 'attack',  owner: 'player', flavor: 'The right angle makes its own advantage.' },
+  { id: 'crusher',   name: 'Crush Doubt',      rps: 'appeal',      value: 6, role: 'attack',  owner: 'player', flavor: 'Certainty spreads faster than fear.' },
+  { id: 'lunger',    name: 'All-In Strike',    rps: 'pressure',    value: 3, role: 'attack',  owner: 'player', flavor: 'Commit hard enough and the outcome has to move.' },
 
-  { id: 'bulwark',   name: 'Hold Composure',   rps: 'appeal',      value: 6, role: 'defense', owner: 'player' },
-  { id: 'ironclad',  name: 'Stand Unbroken',   rps: 'pressure',    value: 5, role: 'defense', owner: 'player' },
-  { id: 'buckler',   name: 'Slip the Blow',    rps: 'positioning', value: 4, role: 'defense', owner: 'player' },
+  { id: 'bulwark',   name: 'Hold Composure',   rps: 'appeal',      value: 6, role: 'defense', owner: 'player', flavor: 'Calm reshapes the choices around you.' },
+  { id: 'ironclad',  name: 'Stand Unbroken',   rps: 'pressure',    value: 5, role: 'defense', owner: 'player', flavor: 'Raw resolve turns resistance into a dead end.' },
+  { id: 'buckler',   name: 'Slip the Blow',    rps: 'positioning', value: 4, role: 'defense', owner: 'player', flavor: 'A precise step changes danger into distance.' },
 
-  { id: 'mentor',    name: 'Guide the Move',   rps: 'positioning', value: 3, role: 'support', owner: 'player' },
-  { id: 'tactician', name: 'Shape Intent',     rps: 'appeal',      value: 5, role: 'support', owner: 'player' },
-  { id: 'vanguard',  name: 'Lead the Charge',  rps: 'pressure',    value: 6, role: 'support', owner: 'player' },
-  { id: 'scout',     name: 'Mark the Path',    rps: 'positioning', value: 4, role: 'support', owner: 'player' },
-  { id: 'warden',    name: 'Steady Hearts',    rps: 'appeal',      value: 6, role: 'support', owner: 'player' },
+  { id: 'mentor',    name: 'Guide the Move',   rps: 'positioning', value: 3, role: 'support', owner: 'player', flavor: 'Preparation makes the next decision obvious.' },
+  { id: 'tactician', name: 'Shape Intent',     rps: 'appeal',      value: 5, role: 'support', owner: 'player', flavor: 'A well-placed signal bends the room your way.' },
+  { id: 'vanguard',  name: 'Lead the Charge',  rps: 'pressure',    value: 6, role: 'support', owner: 'player', flavor: 'Momentum favors the side that acts first and hardest.' },
+  { id: 'scout',     name: 'Mark the Path',    rps: 'positioning', value: 4, role: 'support', owner: 'player', flavor: 'Control the route and you control the fight.' },
+  { id: 'warden',    name: 'Steady Hearts',    rps: 'appeal',      value: 6, role: 'support', owner: 'player', flavor: 'Shared resolve keeps the line from breaking.' },
 ] */
 
 /**
@@ -65,28 +65,28 @@ const PLAYER_CARD_DEFINITIONS = [
  * owner: 'enemy'
  */
 const ENEMY_CARD_DEFINITIONS = [
-  { id: 'brawler', name: 'Break Will', rps: 'pressure', value: 5, role: 'none', owner: 'enemy' },
-  { id: 'slasher', name: 'Cut an Opening', rps: 'positioning', value: 5, role: 'none', owner: 'enemy' },
-  { id: 'crusher', name: 'Crush Doubt', rps: 'appeal', value: 5, role: 'none', owner: 'enemy' },
+  { id: 'brawler', name: 'Kick In the Door', rps: 'pressure', value: 5, role: 'none', owner: 'enemy', flavor: 'Splinters fly first, threats follow right after.' },
+  { id: 'slasher', name: 'Cut Off Escape', rps: 'positioning', value: 5, role: 'none', owner: 'enemy', flavor: 'No alley, window, or back gate left open.' },
+  { id: 'crusher', name: 'Demand Valuables', rps: 'appeal', value: 5, role: 'none', owner: 'enemy', flavor: 'They bark for coin while waving steel.' },
 
-  { id: 'bulwark', name: 'Hold Composure', rps: 'appeal', value: 5, role: 'none', owner: 'enemy' },
-  { id: 'ironclad', name: 'Stand Unbroken', rps: 'pressure', value: 5, role: 'none', owner: 'enemy' },
-  { id: 'buckler', name: 'Slip the Blow', rps: 'positioning', value: 4, role: 'none', owner: 'enemy' },
+  { id: 'bulwark', name: 'Call for Cover', rps: 'appeal', value: 5, role: 'none', owner: 'enemy', flavor: 'One shout and the whole gang ducks low.' },
+  { id: 'ironclad', name: 'Hold the Breach', rps: 'pressure', value: 5, role: 'none', owner: 'enemy', flavor: 'A brute plants himself where the doorway narrows.' },
+  { id: 'buckler', name: 'Duck Behind Crates', rps: 'positioning', value: 4, role: 'none', owner: 'enemy', flavor: 'They loot with one hand and hide with the other.' },
 ]
 
 /* const ENEMY_CARD_DEFINITIONS = [
-  { id: 'brawler',   name: 'Break Will',       rps: 'pressure',    value: 5, role: 'attack',  owner: 'enemy' },
-  { id: 'slasher',   name: 'Cut an Opening',   rps: 'positioning', value: 5, role: 'attack',  owner: 'enemy' },
-  { id: 'crusher',   name: 'Crush Doubt',      rps: 'appeal',      value: 5, role: 'attack',  owner: 'enemy' },
-  { id: 'lunger',    name: 'All-In Strike',    rps: 'pressure',    value: 3, role: 'attack',  owner: 'enemy' },
+  { id: 'brawler',   name: 'Kick In the Door',    rps: 'pressure',    value: 5, role: 'attack',  owner: 'enemy', flavor: 'Splinters fly first, threats follow right after.' },
+  { id: 'slasher',   name: 'Cut Off Escape',      rps: 'positioning', value: 5, role: 'attack',  owner: 'enemy', flavor: 'No alley, window, or back gate left open.' },
+  { id: 'crusher',   name: 'Demand Valuables',    rps: 'appeal',      value: 5, role: 'attack',  owner: 'enemy', flavor: 'They bark for coin while waving steel.' },
+  { id: 'lunger',    name: 'All-In Strike',       rps: 'pressure',    value: 3, role: 'attack',  owner: 'enemy', flavor: 'A reckless knifeman lunges for the nearest mark.' },
 
-  { id: 'bulwark',   name: 'Hold Composure',   rps: 'appeal',      value: 5, role: 'defense', owner: 'enemy' },
-  { id: 'ironclad',  name: 'Stand Unbroken',   rps: 'pressure',    value: 5, role: 'defense', owner: 'enemy' },
-  { id: 'buckler',   name: 'Slip the Blow',    rps: 'positioning', value: 4, role: 'defense', owner: 'enemy' },
+  { id: 'bulwark',   name: 'Call for Cover',      rps: 'appeal',      value: 5, role: 'defense', owner: 'enemy', flavor: 'One shout and the whole gang ducks low.' },
+  { id: 'ironclad',  name: 'Hold the Breach',     rps: 'pressure',    value: 5, role: 'defense', owner: 'enemy', flavor: 'A brute plants himself where the doorway narrows.' },
+  { id: 'buckler',   name: 'Duck Behind Crates',  rps: 'positioning', value: 4, role: 'defense', owner: 'enemy', flavor: 'They loot with one hand and hide with the other.' },
 
-  { id: 'mentor',    name: 'Guide the Move',   rps: 'positioning', value: 3, role: 'support', owner: 'enemy' },
-  { id: 'tactician', name: 'Shape Intent',     rps: 'appeal',      value: 5, role: 'support', owner: 'enemy' },
-  { id: 'vanguard',  name: 'Lead the Charge',  rps: 'pressure',    value: 5, role: 'support', owner: 'enemy' },
-  { id: 'scout',     name: 'Mark the Path',    rps: 'positioning', value: 4, role: 'support', owner: 'enemy' },
-  { id: 'warden',    name: 'Steady Hearts',    rps: 'appeal',      value: 5, role: 'support', owner: 'enemy' },
+  { id: 'mentor',    name: 'Guide the Move',      rps: 'positioning', value: 3, role: 'support', owner: 'enemy', flavor: 'The spotter points out the weakest corner of the room.' },
+  { id: 'tactician', name: 'Shape Intent',        rps: 'appeal',      value: 5, role: 'support', owner: 'enemy', flavor: 'Their leader keeps the panic working for him.' },
+  { id: 'vanguard',  name: 'Lead the Charge',     rps: 'pressure',    value: 5, role: 'support', owner: 'enemy', flavor: 'The first wave hits hard to break the room.' },
+  { id: 'scout',     name: 'Mark the Path',       rps: 'positioning', value: 4, role: 'support', owner: 'enemy', flavor: 'A runner circles wide to watch every exit.' },
+  { id: 'warden',    name: 'Steady Hearts',       rps: 'appeal',      value: 5, role: 'support', owner: 'enemy', flavor: 'One bandit hangs back to keep the haul secure.' },
 ] */

@@ -5,8 +5,8 @@ export const LAYOUT = {
 
   // Vertical position of each row as a fraction of viewport height
   // Slots are centered horizontally at runtime in main.js
-  enemySlotRowY: 0.19,   // enemy slots closer to the center line
-  playerSlotRowY: 0.43,  // player slots closer to enemy row, still leaves space for hand below
+  enemySlotRowY: 0.09,   // enemy slots closer to the center line
+  playerSlotRowY: 0.4,  // player slots closer to enemy row, still leaves space for hand below
   handY: null,           // computed at runtime: window.innerHeight - CARD.height - 50
 
   // Slot IDs — positions computed dynamically
