@@ -25,6 +25,13 @@ import {
   setResolveButtonDisabled,
   setResolveButtonLabel,
 } from './ui.js'
+import {
+  initRpsTracker,
+  projectCard,
+  clearProjection,
+  resolveCard,
+  resetTracker,
+} from './rps-tracker.js'
 
 const RPS_ICON = {
   pressure: '🔥',
@@ -311,11 +318,13 @@ function renderHand() {
         refreshVisibleCards()
         syncResolveButton()
         const card = findPlayerCardById(cardEl.dataset.id)
+        if (card) projectCard(card.rps)
         showSlotFlavor(slotEl, card?.flavor ?? null)
       },
       onUnsnap(slotEl, cardEl) {
         const slotIndex = slotIdToIndex(slotEl.dataset.id)
         unplaceCard(slotIndex)
+        clearProjection()
         refreshVisibleCards()
         syncResolveButton()
         hideSlotFlavor(slotEl)
@@ -811,6 +820,7 @@ function showRewardOverlay(rewardChoices) {
     choiceButton.addEventListener('click', () => {
       const reward = claimReward(card.id)
       if (!reward) return
+      resetTracker()
 
       hideOverlay()
       drawCards()
@@ -915,6 +925,8 @@ async function continueCombatFlow() {
 
   setResolveButtonDisabled(true)
   const result = resolveCombatStep(step.slot)
+  const trackedCard = gameState.playerBoard[step.slot]
+  if (trackedCard) resolveCard(trackedCard.rps)
   combatFlowState.log.push(result)
   combatFlowState.resolvedSlots.add(result.slot)
   await playCombatStep(result)
@@ -1042,6 +1054,7 @@ function init() {
   bindDeckButtons()
 
   initRun()
+  initRpsTracker()
   drawCards()
   updateRoundCounter()
   renderEnemyBoard()
