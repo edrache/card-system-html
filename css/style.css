@@ -1375,7 +1375,7 @@ body {
 
 .rps-tracker {
   position: absolute;
-  right: 16px;
+  right: calc(1.5rem + 196px + 12px);
   top: 50%;
   transform: translateY(-50%);
   display: flex;
