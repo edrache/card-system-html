@@ -193,3 +193,86 @@ assert.equal(gameState.enemyBoard.filter(Boolean).length, GAME.SLOT_COUNT)
 assert.equal(gameState.rewardChoices.length, 0)
 
 console.log('game logic smoke ok')
+
+// ── RPS Tracker ─────────────────────────────────────────────
+
+import {
+  getTrackerState,
+  projectCard,
+  clearProjection,
+  resolveCard,
+  resetTracker,
+} from '../js/rps-tracker.js'
+
+// Reset before tracker tests
+resetTracker()
+
+// Test: initial state is all zeros
+{
+  const s = getTrackerState()
+  assert.deepStrictEqual(s.resolved, { pressure: 0, appeal: 0, positioning: 0 })
+  assert.deepStrictEqual(s.projected, { pressure: 0, appeal: 0, positioning: 0 })
+  console.log('  ✔ tracker: initial state is all zeros')
+}
+
+// Test: projectCard increments projected
+{
+  resetTracker()
+  projectCard('pressure')
+  projectCard('pressure')
+  projectCard('appeal')
+  const s = getTrackerState()
+  assert.deepStrictEqual(s.projected, { pressure: 2, appeal: 1, positioning: 0 })
+  assert.deepStrictEqual(s.resolved, { pressure: 0, appeal: 0, positioning: 0 })
+  console.log('  ✔ tracker: projectCard increments projected counts')
+}
+
+// Test: clearProjection zeros projected, keeps resolved
+{
+  resetTracker()
+  resolveCard('positioning')
+  projectCard('appeal')
+  clearProjection()
+  const s = getTrackerState()
+  assert.deepStrictEqual(s.projected, { pressure: 0, appeal: 0, positioning: 0 })
+  assert.deepStrictEqual(s.resolved, { pressure: 0, appeal: 0, positioning: 1 })
+  console.log('  ✔ tracker: clearProjection zeros projected, keeps resolved')
+}
+
+// Test: resolveCard moves from projected to resolved
+{
+  resetTracker()
+  projectCard('pressure')
+  projectCard('appeal')
+  resolveCard('pressure')
+  const s = getTrackerState()
+  assert.equal(s.resolved.pressure, 1)
+  assert.equal(s.projected.pressure, 0)
+  assert.equal(s.projected.appeal, 1)
+  console.log('  ✔ tracker: resolveCard moves projected to resolved')
+}
+
+// Test: resetTracker clears everything
+{
+  resetTracker()
+  projectCard('pressure')
+  resolveCard('pressure')
+  projectCard('appeal')
+  resetTracker()
+  const s = getTrackerState()
+  assert.deepStrictEqual(s.resolved, { pressure: 0, appeal: 0, positioning: 0 })
+  assert.deepStrictEqual(s.projected, { pressure: 0, appeal: 0, positioning: 0 })
+  console.log('  ✔ tracker: resetTracker clears everything')
+}
+
+// Test: percentage calculation — proportional
+{
+  resetTracker()
+  resolveCard('pressure')
+  resolveCard('pressure')
+  resolveCard('appeal')
+  const s = getTrackerState()
+  // total resolved = 3, pressure = 2/3 ≈ 66.7%, appeal = 1/3 ≈ 33.3%
+  assert.equal(s.resolvedTotal, 3)
+  console.log('  ✔ tracker: resolvedTotal is correct')
+}
