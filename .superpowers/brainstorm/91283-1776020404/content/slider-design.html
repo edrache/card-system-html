@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RPS Tracker Design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Barlow+Condensed:wght@400;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: oklch(15% 0.04 152);
+    color: #ccc;
+    font-family: 'Barlow Condensed', sans-serif;
+    display: flex;
+    gap: 40px;
+    padding: 30px;
+    min-height: 100vh;
+  }
+
+  h2 {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 1.1rem;
+    color: oklch(66% 0.08 85 / 0.7);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .demo-section {
+    flex: 1;
+    max-width: 480px;
+  }
+
+  .description {
+    font-size: 0.85rem;
+    color: oklch(70% 0.03 265 / 0.6);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* ── Simulated game board ── */
+  .board-sim {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background: oklch(32% 0.06 152);
+    border-radius: 12px;
+    overflow: hidden;
+    background-image:
+      radial-gradient(ellipse at 50% 50%, transparent 22%, oklch(5% 0.03 152 / 0.5) 100%);
+  }
+
+  /* ── RPS Tracker Panel ── */
+  .rps-tracker {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    padding: 12px 10px;
+    background: oklch(10% 0.02 152 / 0.5);
+    border-radius: 8px;
+    border: 1px solid oklch(66% 0.08 85 / 0.15);
+  }
+
+  .rps-tracker__title {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'IM Fell English SC', serif;
+    font-size: 0.5rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: oklch(66% 0.08 85 / 0.45);
+    white-space: nowrap;
+  }
+
+  .rps-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 28px;
+  }
+
+  .rps-bar__track {
+    width: 10px;
+    height: 140px;
+    background: oklch(20% 0.02 152 / 0.6);
+    border-radius: 5px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .rps-bar__fill {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 5px;
+    transition: height 0.4s ease;
+  }
+
+  .rps-bar__ghost {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 5px;
+    border: 2px dashed;
+    box-sizing: border-box;
+    transition: height 0.4s ease;
+  }
+
+  .rps-bar__icon {
+    font-size: 14px;
+    user-select: none;
+  }
+
+  .rps-bar__label {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: oklch(70% 0.03 265 / 0.4);
+  }
+
+  .rps-bar__pct {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: oklch(80% 0.03 265 / 0.7);
+  }
+
+  /* Colors per type */
+  .rps-bar--pressure .rps-bar__fill { background: oklch(45% 0.15 25); }
+  .rps-bar--pressure .rps-bar__ghost { border-color: oklch(45% 0.15 25 / 0.5); }
+
+  .rps-bar--appeal .rps-bar__fill { background: oklch(60% 0.13 95); }
+  .rps-bar--appeal .rps-bar__ghost { border-color: oklch(60% 0.13 95 / 0.5); }
+
+  .rps-bar--positioning .rps-bar__fill { background: oklch(45% 0.12 240); }
+  .rps-bar--positioning .rps-bar__ghost { border-color: oklch(45% 0.12 240 / 0.5); }
+
+  /* ── States side by side ── */
+  .states {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .state-card {
+    background: oklch(18% 0.03 152);
+    border-radius: 8px;
+    padding: 16px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .state-card h3 {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 0.75rem;
+    color: oklch(66% 0.08 85 / 0.6);
+    margin-bottom: 12px;
+    letter-spacing: 0.15em;
+  }
+
+  .state-card .note {
+    font-size: 0.72rem;
+    color: oklch(70% 0.03 265 / 0.45);
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  /* mini tracker for state cards */
+  .mini-tracker {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .mini-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mini-bar__track {
+    width: 8px;
+    height: 80px;
+    background: oklch(20% 0.02 152 / 0.6);
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .mini-bar__fill {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 4px;
+  }
+
+  .mini-bar__ghost {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 4px;
+    border: 1.5px dashed;
+    box-sizing: border-box;
+  }
+
+  .mini-bar__icon { font-size: 11px; }
+  .mini-bar__pct { font-size: 0.6rem; color: oklch(80% 0.03 265 / 0.6); }
+
+  /* annotation arrows */
+  .annotation {
+    position: absolute;
+    font-size: 0.6rem;
+    color: oklch(75% 0.1 85 / 0.8);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .annotation::before {
+    content: '←';
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-section">
+  <h2>RPS Tracker — Full Board View</h2>
+  <p class="description">Panel po prawej stronie planszy. Pionowe paski pokazujące proporcję zagranych typów kart w bieżącym encounterze. Ghost marker (przerywana linia) pokazuje projekcję po Resolve.</p>
+
+  <div class="board-sim">
+    <!-- Simulated card placeholders -->
+    <div style="position:absolute;top:8%;left:50%;transform:translateX(-50%);display:flex;gap:12px;">
+      <div style="width:70px;height:98px;background:oklch(25% 0.04 152);border:1px solid oklch(50% 0.05 85/0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#666;">Enemy</div>
+      <div style="width:70px;height:98px;background:oklch(25% 0.04 152);border:1px solid oklch(50% 0.05 85/0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#666;">Enemy</div>
+      <div style="width:70px;height:98px;background:oklch(25% 0.04 152);border:1px solid oklch(50% 0.05 85/0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#666;">Enemy</div>
+    </div>
+    <div style="position:absolute;top:38%;left:50%;transform:translateX(-50%);display:flex;gap:12px;">
+      <div style="width:70px;height:98px;background:oklch(30% 0.06 25);border:1px solid oklch(50% 0.12 25/0.4);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">🔥</div>
+      <div style="width:70px;height:98px;background:oklch(30% 0.06 95);border:1px solid oklch(50% 0.12 95/0.4);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">✨</div>
+      <div style="width:70px;height:98px;background:oklch(30% 0.06 25);border:1px solid oklch(50% 0.12 25/0.4);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">🔥</div>
+    </div>
+
+    <!-- RPS Tracker -->
+    <div class="rps-tracker">
+      <span class="rps-tracker__title">Approach</span>
+
+      <div class="rps-bar rps-bar--pressure">
+        <div class="rps-bar__pct">50%</div>
+        <div class="rps-bar__track">
+          <!-- Resolved: 40% (2 out of 5 total resolved) -->
+          <div class="rps-bar__fill" style="height:28%;"></div>
+          <!-- Ghost: projects to 50% after resolve -->
+          <div class="rps-bar__ghost" style="height:50%;"></div>
+        </div>
+        <div class="rps-bar__icon">🔥</div>
+      </div>
+
+      <div class="rps-bar rps-bar--appeal">
+        <div class="rps-bar__pct">25%</div>
+        <div class="rps-bar__track">
+          <div class="rps-bar__fill" style="height:40%;"></div>
+          <div class="rps-bar__ghost" style="height:25%;"></div>
+        </div>
+        <div class="rps-bar__icon">✨</div>
+      </div>
+
+      <div class="rps-bar rps-bar--positioning">
+        <div class="rps-bar__pct">25%</div>
+        <div class="rps-bar__track">
+          <div class="rps-bar__fill" style="height:28%;"></div>
+          <div class="rps-bar__ghost" style="height:25%;"></div>
+        </div>
+        <div class="rps-bar__icon">🎯</div>
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="font-size:0.6rem;color:oklch(66% 0.08 85/0.5);letter-spacing:0.15em;">ROUND 3</div>
+      <button style="background:oklch(45% 0.1 85);color:#111;border:none;padding:6px 20px;border-radius:4px;font-size:0.7rem;font-weight:600;cursor:pointer;">Resolve</button>
+    </div>
+  </div>
+</div>
+
+<div class="demo-section">
+  <h2>Stany Panelu</h2>
+
+  <div class="states">
+    <!-- State 1: Empty -->
+    <div class="state-card">
+      <h3>1. Początek encountera</h3>
+      <div class="mini-tracker">
+        <div class="mini-bar">
+          <div class="mini-bar__pct">0</div>
+          <div class="mini-bar__track">
+            <!-- empty -->
+          </div>
+          <div class="mini-bar__icon">🔥</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct">0</div>
+          <div class="mini-bar__track"></div>
+          <div class="mini-bar__icon">✨</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct">0</div>
+          <div class="mini-bar__track"></div>
+          <div class="mini-bar__icon">🎯</div>
+        </div>
+      </div>
+      <p class="note">Puste slidery, 0 zagranych kart</p>
+    </div>
+
+    <!-- State 2: Cards placed, ghost markers -->
+    <div class="state-card">
+      <h3>2. Karty na slotach (pre-resolve)</h3>
+      <div class="mini-tracker">
+        <div class="mini-bar">
+          <div class="mini-bar__pct" style="color:oklch(45% 0.15 25 / 0.7);">67%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__ghost" style="height:67%;border-color:oklch(45% 0.15 25 / 0.5);"></div>
+          </div>
+          <div class="mini-bar__icon">🔥</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct" style="color:oklch(60% 0.13 95 / 0.7);">33%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__ghost" style="height:33%;border-color:oklch(60% 0.13 95 / 0.5);"></div>
+          </div>
+          <div class="mini-bar__icon">✨</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct">0</div>
+          <div class="mini-bar__track"></div>
+          <div class="mini-bar__icon">🎯</div>
+        </div>
+      </div>
+      <p class="note">Ghost markery (przerywane) — 2🔥 + 1✨ na slotach. Runda 1, brak resolved jeszcze.</p>
+    </div>
+
+    <!-- State 3: After resolve round 1 -->
+    <div class="state-card">
+      <h3>3. Po Resolve (runda 1)</h3>
+      <div class="mini-tracker">
+        <div class="mini-bar">
+          <div class="mini-bar__pct">67%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__fill" style="height:67%;background:oklch(45% 0.15 25);border-radius:4px;"></div>
+          </div>
+          <div class="mini-bar__icon">🔥</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct">33%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__fill" style="height:33%;background:oklch(60% 0.13 95);border-radius:4px;"></div>
+          </div>
+          <div class="mini-bar__icon">✨</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct">0</div>
+          <div class="mini-bar__track"></div>
+          <div class="mini-bar__icon">🎯</div>
+        </div>
+      </div>
+      <p class="note">Ghost znika, fill przesuwa się. Resolved: 2🔥 + 1✨ = 3 karty.</p>
+    </div>
+
+    <!-- State 4: Round 2 with new ghost -->
+    <div class="state-card">
+      <h3>4. Runda 2 — nowe karty + nowy ghost</h3>
+      <div class="mini-tracker">
+        <div class="mini-bar">
+          <div class="mini-bar__pct">50%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__fill" style="height:67%;background:oklch(45% 0.15 25);border-radius:4px;"></div>
+            <div class="mini-bar__ghost" style="height:50%;border-color:oklch(45% 0.15 25 / 0.5);"></div>
+          </div>
+          <div class="mini-bar__icon">🔥</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct" style="color:oklch(60% 0.13 95 / 0.7);">33%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__fill" style="height:33%;background:oklch(60% 0.13 95);border-radius:4px;"></div>
+            <div class="mini-bar__ghost" style="height:33%;border-color:oklch(60% 0.13 95 / 0.5);"></div>
+          </div>
+          <div class="mini-bar__icon">✨</div>
+        </div>
+        <div class="mini-bar">
+          <div class="mini-bar__pct" style="color:oklch(45% 0.12 240 / 0.7);">17%</div>
+          <div class="mini-bar__track">
+            <div class="mini-bar__ghost" style="height:17%;border-color:oklch(45% 0.12 240 / 0.5);"></div>
+          </div>
+          <div class="mini-bar__icon">🎯</div>
+        </div>
+      </div>
+      <p class="note">Fill = resolved (2🔥+1✨). Ghost = projekcja po resolve (3🔥+2✨+1🎯). Pressure spada z 67%→50%.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -3,3 +3,4 @@
 {"source":"user-event","type":"click","text":"7\n        \n          +2\n          −1\n        \n        \n          Score +3\n          Score −2\n        \n      \n      A — kółka nakładają się,wynik osobno poniżej","choice":"a","id":null,"timestamp":1775677478914}
 {"type":"screen-added","file":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/content/waiting-1.html"}
 {"type":"screen-added","file":"/Users/marek/OfflineDocuments/Repo/Antigravity/Card-system/.superpowers/brainstorm/56876-1775677381/content/design-final.html"}
+{"type":"server-stopped","reason":"owner process exited"}

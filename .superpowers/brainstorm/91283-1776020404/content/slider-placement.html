@@ -1,0 +1,97 @@
+<h2>Gdzie umieścić slidery?</h2>
+<p class="subtitle">3 slidery: Pressure 🔥, Appeal ✨, Positioning 🧭 — pokazujące zagrane karty per encounter</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Lewy panel (obok rules-panel)</h3>
+      <p>Pionowe slidery w osobnym panelu po lewej stronie planszy. Widoczne cały czas, nie kolidują z kartami. Podobne do istniejącego rules-panel.</p>
+      <div style="display:flex;gap:12px;margin-top:12px;padding:16px;background:#2a5a34;border-radius:8px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <span style="font-size:11px;color:#ccc;">🔥</span>
+          <div style="width:8px;height:120px;background:#444;border-radius:4px;position:relative;">
+            <div style="position:absolute;bottom:0;width:100%;height:40%;background:#792929;border-radius:4px;"></div>
+            <div style="position:absolute;bottom:0;width:100%;height:60%;border:2px dashed rgba(121,41,41,0.5);border-radius:4px;box-sizing:border-box;"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <span style="font-size:11px;color:#ccc;">✨</span>
+          <div style="width:8px;height:120px;background:#444;border-radius:4px;position:relative;">
+            <div style="position:absolute;bottom:0;width:100%;height:20%;background:#797929;border-radius:4px;"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <span style="font-size:11px;color:#ccc;">🧭</span>
+          <div style="width:8px;height:120px;background:#444;border-radius:4px;position:relative;">
+            <div style="position:absolute;bottom:0;width:100%;height:30%;background:#295679;border-radius:4px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Pod HUD-em (dolny środek)</h3>
+      <p>Poziome slidery pod przyciskiem Resolve i licznikiem rund. Kompaktowe, blisko akcji gracza.</p>
+      <div style="padding:16px;background:#2a5a34;border-radius:8px;">
+        <div style="text-align:center;margin-bottom:12px;color:#ccc;font-size:12px;">Round 2 &nbsp; [Resolve]</div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-width:280px;margin:0 auto;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#ccc;width:20px;">🔥</span>
+            <div style="flex:1;height:8px;background:#444;border-radius:4px;position:relative;">
+              <div style="position:absolute;left:0;width:40%;height:100%;background:#792929;border-radius:4px;"></div>
+              <div style="position:absolute;left:40%;width:20%;height:100%;background:rgba(121,41,41,0.4);border-radius:0 4px 4px 0;border:1px dashed rgba(121,41,41,0.7);box-sizing:border-box;"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#ccc;width:20px;">✨</span>
+            <div style="flex:1;height:8px;background:#444;border-radius:4px;position:relative;">
+              <div style="position:absolute;left:0;width:20%;height:100%;background:#797929;border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#ccc;width:20px;">🧭</span>
+            <div style="flex:1;height:8px;background:#444;border-radius:4px;position:relative;">
+              <div style="position:absolute;left:0;width:30%;height:100%;background:#295679;border-radius:4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Między rzędami kart (środek planszy)</h3>
+      <p>Poziome slidery w przestrzeni między kartami przeciwnika a kartami gracza, obok markerów walki (⚔️). Centralnie, w polu widzenia.</p>
+      <div style="padding:16px;background:#2a5a34;border-radius:8px;">
+        <div style="text-align:center;color:#666;font-size:11px;margin-bottom:8px;">— enemy cards —</div>
+        <div style="display:flex;flex-direction:column;gap:4px;max-width:240px;margin:0 auto;padding:8px 0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:10px;width:16px;">🔥</span>
+            <div style="flex:1;height:6px;background:#444;border-radius:3px;position:relative;">
+              <div style="width:40%;height:100%;background:#792929;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:10px;width:16px;">✨</span>
+            <div style="flex:1;height:6px;background:#444;border-radius:3px;position:relative;">
+              <div style="width:20%;height:100%;background:#797929;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:10px;width:16px;">🧭</span>
+            <div style="flex:1;height:6px;background:#444;border-radius:3px;position:relative;">
+              <div style="width:30%;height:100%;background:#295679;border-radius:3px;"></div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;color:#666;font-size:11px;margin-top:8px;">— player cards —</div>
+      </div>
+    </div>
+  </div>
+</div>
